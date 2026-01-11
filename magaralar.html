@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye'nin Başlıca Mağaraları - Standart Dark Mode</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter & Rajdhani -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- STANDARD DARK THEME (Modern Slate) --- */
+            --bg-deep: #0f172a;         /* Slate 900 */
+            --bg-surface: #1e293b;      /* Slate 800 */
+            
+            --glass-bg: rgba(30, 41, 59, 0.85); 
+            --glass-border: rgba(148, 163, 184, 0.2); /* Slate 400 (low opacity) */
+            --glass-highlight: rgba(255, 255, 255, 0.05);
+
+            --text-primary: #f8fafc;    /* Slate 50 */
+            --text-muted: #94a3b8;      /* Slate 400 */
+            --text-contrast: #ffffff; 
+            
+            --neon-accent: #38bdf8;     /* Sky 400 */
+            --neon-secondary: #818cf8;  /* Indigo 400 */
+            --neon-glow: rgba(56, 189, 248, 0.3);
+            
+            --status-success: #22c55e;  /* Green 500 */
+            --status-error: #ef4444;    /* Red 500 */
+            --status-warn: #f59e0b;     /* Amber 500 */
+
+            --map-fill: #334155;        /* Slate 700 */
+            --map-stroke: #475569;      /* Slate 600 */
+            --map-hover: #475569;       /* Lighter Slate */
+
+            /* Bölge Renkleri (Sade, Pastel) */
+            --region-marmara: #f472b6;  
+            --region-akdeniz: #60a5fa;  
+            --region-karadeniz: #34d399; 
+            --region-icanadolu: #fbbf24; 
+            --region-diger: #a78bfa;     
+            
+            /* --- CARD VARIABLES --- */
+            --card-bg: #1e293b; 
+            --card-border: #334155;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            --card-text: #f1f5f9;
+        }
+
+        body.light-mode {
+            --bg-deep: #f8fafc;         /* Slate 50 */
+            --bg-surface: #ffffff;      
+            
+            --glass-bg: rgba(255, 255, 255, 0.9); 
+            --glass-border: #e2e8f0; 
+            --glass-highlight: #ffffff;
+
+            --text-primary: #0f172a;    
+            --text-muted: #64748b;      
+            --text-contrast: #020617;   
+            
+            --neon-accent: #0284c7;       
+            --neon-glow: rgba(2, 132, 199, 0.1);
+            
+            --map-fill: #e2e8f0;        
+            --map-stroke: #cbd5e1;      
+            --map-hover: #cbd5e1;       
+            
+            --card-bg: #ffffff;
+            --card-border: #e2e8f0;
+            --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --card-text: #1e293b;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden; 
+            user-select: none;
+            position: relative;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* --- CLEAN BACKGROUND --- */
+        .bg-pattern {
+            position: absolute; inset: 0; z-index: 0;
+            /* Subtle grid pattern */
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.5;
+        }
+
+        /* --- UI COMPONENTS --- */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        header, footer { position: relative; z-index: 50; transition: all 0.3s ease; }
+        h1, .font-tech { font-family: 'Rajdhani', sans-serif; letter-spacing: 0.05em; }
+        
+        .theme-toggle-btn {
+            width: 40px; height: 40px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--bg-surface);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: var(--text-muted);
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .theme-toggle-btn:hover { 
+            color: var(--neon-accent); 
+            border-color: var(--neon-accent);
+            background: var(--map-fill);
+        }
+
+        .auth-btn {
+            padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.05em; transition: all 0.2s ease; cursor: pointer;
+        }
+        .btn-login {
+            background: transparent; border: 1px solid var(--glass-border); color: var(--text-primary);
+        }
+        .btn-login:hover { border-color: var(--neon-accent); color: var(--neon-accent); }
+        .btn-signup {
+            background: var(--neon-accent); color: #fff; border: 1px solid var(--neon-accent);
+        }
+        .btn-signup:hover { filter: brightness(1.1); }
+
+        /* --- STATS --- */
+        .stats-bar {
+            position: relative; z-index: 10;
+            display: flex; gap: 1rem; padding: 0.5rem 1rem;
+            justify-content: center; align-items: center;
+            border-bottom: 1px solid var(--glass-border);
+        }
+        .stat-chip {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.25rem 1rem; border-radius: 8px;
+            background: var(--bg-surface); border: 1px solid var(--glass-border);
+            min-width: 80px;
+        }
+        .stat-label { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); letter-spacing: 0.05em; }
+        .stat-value { font-family: 'Rajdhani', sans-serif; font-size: 1.25rem; font-weight: 700; line-height: 1; }
+
+        /* --- QUESTION PANEL --- */
+        #question-panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--neon-accent);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 1rem 2rem;
+            display: flex; align-items: center; justify-content: center; gap: 2rem;
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+            z-index: 40; transition: all 0.5s;
+        }
+        .target-label { font-size: 0.75rem; color: var(--neon-accent); font-weight: 700; letter-spacing: 0.2em; }
+        .target-name { 
+            font-family: 'Rajdhani', sans-serif; font-size: 2rem; font-weight: 700; 
+            color: var(--text-contrast);
+        }
+
+        #hint-btn {
+            background: transparent; border: 1px solid var(--glass-border); color: var(--text-muted); 
+            font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 0.9rem;
+            padding: 0.6rem 1.2rem; border-radius: 6px; 
+            display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 0.2s;
+        }
+        #hint-btn:hover { 
+            background: var(--bg-deep); color: var(--neon-accent); border-color: var(--neon-accent);
+        }
+
+        /* --- MAP --- */
+        #map-container { flex-grow: 1; position: relative; overflow: hidden; width: 100%; }
+        
+        .province-path {
+            fill: var(--map-fill); stroke: var(--map-stroke); stroke-width: 0.5px;
+            transition: all 0.2s ease; vector-effect: non-scaling-stroke;
+        }
+        .province-path:hover { fill: var(--map-hover); stroke: var(--neon-accent); stroke-width: 1.5px; }
+
+        /* MARKERS - STANDARD PIN */
+        .game-marker { cursor: pointer; }
+        .marker-shape {
+            stroke: var(--bg-deep); stroke-width: 1px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            vector-effect: non-scaling-stroke;
+        }
+        .game-marker:hover .marker-shape { 
+            transform: scale(1.3) translateY(-5px); 
+            stroke: var(--text-contrast);
+        }
+        .game-marker.found .marker-shape { 
+            fill: var(--text-contrast) !important; stroke: var(--neon-accent); stroke-width: 2px; 
+            transform: scale(1.1); 
+        }
+        
+        /* Hint Animation Class */
+        .game-marker.hint-active .marker-shape {
+            animation: hintPulse 1s infinite;
+            stroke: var(--status-warn);
+            stroke-width: 2px;
+        }
+        @keyframes hintPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        /* LABELS */
+        .map-label-text { 
+            fill: var(--text-contrast); font-family: 'Rajdhani', sans-serif; font-weight: 800; font-size: 11px; 
+            pointer-events: none; text-anchor: middle; dominant-baseline: central;
+            stroke: var(--bg-deep); stroke-width: 3px; stroke-linejoin: round; paint-order: stroke;
+            opacity: 0; animation: popIn 0.3s forwards;
+        }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+        /* LEGEND */
+        .legend-box {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            padding: 12px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 20;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-family: 'Rajdhani', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 0 5px rgba(0,0,0,0.2);
+        }
+
+        /* MODALS */
+        #game-over-modal {
+            background-color: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            pointer-events: auto; 
+        }
+        .modal-content {
+            background: var(--bg-surface);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            pointer-events: auto;
+            border-radius: 16px;
+        }
+
+        /* INFO CARD - STANDARD */
+        #info-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            box-shadow: var(--card-shadow);
+            position: relative;
+            overflow: hidden;
+            color: var(--card-text);
+            border-radius: 16px;
+        }
+        
+        .icon-halo { border-color: rgba(255,255,255,0.1); }
+
+        /* Loader */
+        .loader {
+            width: 50px; height: 50px; border: 3px solid var(--glass-border);
+            border-left-color: var(--neon-accent); border-radius: 50%; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+
+        .pulse-text { animation: glowPulse 2s infinite alternate; }
+        @keyframes glowPulse { from { opacity: 1; } to { opacity: 0.7; } }
+        
+        .floating-score { 
+            position: absolute; font-family: 'Rajdhani', sans-serif; font-weight: 700; font-size: 1.5rem; 
+            pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 1000; 
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        @keyframes floatUp { to { transform: translateY(-30px); opacity: 0; } }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Ambient Backgrounds -->
+    <div class="bg-pattern"></div>
+
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] bg-[var(--bg-deep)] flex items-center justify-center flex-col transition-opacity duration-500">
+        <div class="loader mb-6"></div>
+        <h2 class="text-xl font-bold tracking-widest text-[var(--text-primary)]">YÜKLENİYOR...</h2>
+        <div id="error-container" class="hidden mt-4 text-center">
+            <p class="text-[var(--status-error)] text-sm mb-2" id="error-msg">Bağlantı Hatası</p>
+            <button onclick="location.reload()" class="text-xs border border-[var(--status-error)] px-4 py-2 text-[var(--status-error)] rounded hover:bg-red-500/10 transition">YENİLE</button>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="glass-panel border-b-0 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3 select-none cursor-pointer" onclick="location.href='index.html'">
+                    <div class="w-10 h-10 rounded-lg flex items-center justify-center bg-[var(--neon-accent)] text-white shadow-lg">
+                        <i data-lucide="mountain" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-[var(--text-contrast)] leading-none mb-1">MAĞARALAR</h1>
+                        <p class="text-[10px] font-bold tracking-wider text-[var(--text-muted)] uppercase">Türkiye Coğrafyası</p>
+                    </div>
+                </div>
+                
+                <nav class="hidden md:flex items-center gap-6 border-l border-[var(--glass-border)] pl-6 h-8">
+                    <a href="index.html" class="text-sm font-medium text-[var(--text-muted)] hover:text-[var(--neon-accent)] transition-colors">Ana Sayfa</a>
+                    <span class="text-[10px] text-[var(--text-muted)]">/</span>
+                    <span class="text-sm font-bold text-[var(--text-primary)]">Oyun</span>
+                </nav>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <button onclick="game.toggleTheme()" class="theme-toggle-btn" title="Temayı Değiştir">
+                    <i data-lucide="moon" class="w-5 h-5 dark-icon hidden"></i>
+                    <i data-lucide="sun" class="w-5 h-5 light-icon"></i>
+                </button>
+                <button onclick="game.toggleAudio()" class="theme-toggle-btn group" title="Sesi Aç/Kapat">
+                    <i data-lucide="volume-2" class="w-5 h-5 sound-on-icon group-hover:text-[var(--text-primary)]"></i>
+                    <i data-lucide="volume-x" class="w-5 h-5 sound-off-icon hidden group-hover:text-[var(--text-primary)]"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden theme-toggle-btn ml-1">
+                    <i data-lucide="menu" id="menu-icon" class="w-5 h-5"></i>
+                    <i data-lucide="x" id="close-icon" class="w-5 h-5 hidden"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div id="mobile-menu" class="md:hidden bg-[var(--bg-surface)] border-b border-[var(--glass-border)] w-full absolute top-16 left-0 z-40 shadow-xl transition-all duration-300 overflow-hidden max-h-0 opacity-0">
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="block px-4 py-3 font-medium text-[var(--text-primary)] hover:bg-[var(--glass-highlight)] rounded-lg">Ana Sayfa</a>
+                <a href="#" class="block px-4 py-3 font-medium text-[var(--text-primary)] hover:bg-[var(--glass-highlight)] rounded-lg">Hakkımızda</a>
+                <hr class="border-[var(--glass-border)] my-2">
+                <div class="flex gap-3">
+                    <button class="auth-btn btn-login w-full">Giriş</button>
+                    <button class="auth-btn btn-signup w-full">Kayıt Ol</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col relative overflow-hidden">
+        <div class="stats-bar glass-panel border-t-0">
+            <div class="stat-chip">
+                <span class="stat-label">SÜRE</span>
+                <span class="stat-value text-[var(--text-primary)]" id="timer">00:00</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">PUAN</span>
+                <span class="stat-value text-[var(--status-success)]" id="score">0</span>
+            </div>
+            <div class="stat-chip hidden sm:flex">
+                <span class="stat-label">DOĞRULUK</span>
+                <span class="stat-value text-[var(--neon-accent)]" id="accuracy">100%</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">KALAN</span>
+                <span class="stat-value text-[var(--text-muted)]" id="remaining">0</span>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div id="question-panel" class="opacity-0 pointer-events-none translate-y-[-20px]">
+                <div class="text-center">
+                    <div class="target-label">HEDEF</div>
+                    <div class="target-name pulse-text" id="target-name">YÜKLENİYOR</div>
+                </div>
+                <div class="h-8 w-[1px] bg-[var(--glass-border)] mx-4"></div>
+                <button onclick="game.hint()" id="hint-btn">
+                    <i data-lucide="eye" class="w-4 h-4"></i>
+                    <span>İPUCU</span>
+                </button>
+            </div>
+
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="map-content">
+                    <g id="layer-provinces"></g>
+                    <g id="layer-cities"></g> 
+                    <g id="layer-markers"></g>
+                    <g id="layer-labels"></g> 
+                    <g id="layer-effects"></g>
+                </g>
+            </svg>
+
+            <!-- Legend -->
+            <div class="legend-box hidden sm:flex">
+                <div class="text-[10px] text-[var(--text-muted)] font-bold mb-1 opacity-70 tracking-widest uppercase border-b border-[var(--glass-border)] pb-1">Bölgeler</div>
+                <div class="legend-item"><div class="legend-dot" style="background: var(--region-marmara)"></div> Marmara</div>
+                <div class="legend-item"><div class="legend-dot" style="background: var(--region-akdeniz)"></div> Akdeniz / Ege</div>
+                <div class="legend-item"><div class="legend-dot" style="background: var(--region-karadeniz)"></div> Karadeniz</div>
+                <div class="legend-item"><div class="legend-dot" style="background: var(--region-icanadolu)"></div> İç Anadolu / Diğer</div>
+            </div>
+
+            <div id="status-msg" class="absolute bottom-24 left-1/2 -translate-x-1/2 px-8 py-4 rounded-xl shadow-lg font-bold text-lg transition-all opacity-0 translate-y-8 pointer-events-none z-50 flex items-center gap-3 border backdrop-blur-md"></div>
+        </div>
+    </main>
+    
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4 transition-all duration-500 opacity-0 pointer-events-none">
+        <div id="info-card" class="rounded-2xl p-0 max-w-sm w-full relative overflow-hidden transform scale-90 transition-all duration-500 shadow-2xl">
+             <!-- Background Icon -->
+             <div class="absolute -right-6 -top-6 opacity-[0.05] text-[var(--text-primary)]">
+                 <i data-lucide="map-pin" class="w-48 h-48"></i>
+             </div>
+             
+             <!-- Content -->
+             <div class="relative px-6 pt-8 pb-4 text-center z-10">
+                 <div class="relative inline-flex items-center justify-center w-16 h-16 mb-4">
+                    <div class="w-14 h-14 rounded-full flex items-center justify-center shadow-md text-white" style="background: var(--theme-color)">
+                        <i data-lucide="check" class="w-8 h-8 stroke-[3px]"></i>
+                    </div>
+                 </div>
+                 <h3 class="text-2xl font-bold mb-1 tracking-tight" style="color: var(--text-primary)" id="info-title">MAĞARA ADI</h3>
+                 <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-[var(--glass-border)] bg-[var(--bg-deep)] text-[var(--text-muted)]" id="info-type">BÖLGE</span>
+             </div>
+             
+             <div class="px-8 pb-8 pt-2 relative z-10">
+                 <div class="bg-[var(--bg-deep)] rounded-lg p-4 border border-[var(--glass-border)]">
+                     <p class="text-sm leading-relaxed text-[var(--text-muted)] text-center" id="info-desc">Açıklama</p>
+                 </div>
+                 <button onclick="game.closeInfo()" class="w-full mt-6 py-3 rounded-lg font-bold text-sm uppercase tracking-wide flex items-center justify-center gap-2 group hover:opacity-90 shadow-md text-white transition-all active:scale-95" style="background: var(--theme-color)">
+                     <span>DEVAM ET</span>
+                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                 </button>
+             </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 hidden flex items-center justify-center p-4 transition-all">
+        <div class="modal-content w-full max-w-sm text-center relative overflow-hidden p-8">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 bg-[var(--bg-deep)] text-[var(--neon-accent)] shadow-inner">
+                <i data-lucide="trophy" class="w-8 h-8"></i>
+            </div>
+            
+            <h2 class="text-2xl font-bold mb-2 text-[var(--text-primary)] tracking-tight">TEBRİKLER!</h2>
+            <p class="mb-8 text-sm text-[var(--text-muted)]">Tüm mağaraları başarıyla keşfettiniz.</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="p-3 rounded-xl bg-[var(--bg-deep)] border border-[var(--glass-border)]">
+                    <span class="text-[10px] font-bold uppercase block mb-1 text-[var(--text-muted)]">PUAN</span>
+                    <span class="text-xl font-bold text-[var(--status-success)]" id="final-score">0</span>
+                </div>
+                <div class="p-3 rounded-xl bg-[var(--bg-deep)] border border-[var(--glass-border)]">
+                    <span class="text-[10px] font-bold uppercase block mb-1 text-[var(--text-muted)]">BAŞARI</span>
+                    <span class="text-xl font-bold text-[var(--neon-accent)]" id="final-accuracy">0%</span>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-3">
+                <button onclick="location.reload()" class="w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wide bg-[var(--neon-accent)] text-white hover:opacity-90 transition-all">
+                    TEKRAR OYNA
+                </button>
+                <button onclick="location.href='index.html'" class="w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wide border border-[var(--glass-border)] text-[var(--text-muted)] hover:bg-[var(--bg-deep)] transition-all">
+                    ANA SAYFA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json'; 
+        const FALLBACK_URL = 'https://raw.githubusercontent.com/alpers/Turkey-Maps-GeoJSON/master/tr-cities-utf8.json';
+
+        // Mağara Veri Seti
+        const caveData = [
+            { name: "Dupnisa Mağarası", lat: 41.84, lon: 27.55, region: "marmara", desc: "Kırklareli'de, Istranca Dağları'nda bulunan, Trakya'nın turizme açılan ilk ve tek mağarasıdır." },
+            { name: "Yarımburgaz Mağarası", lat: 41.06, lon: 28.77, region: "marmara", desc: "İstanbul Başakşehir'de, Türkiye'nin bilinen en eski yerleşim yerlerinden biridir." },
+            { name: "Oylat Mağarası", lat: 39.95, lon: 29.58, region: "marmara", desc: "Bursa İnegöl'de, Türkiye'nin en büyük ikinci mağarasıdır. Fay hattı üzerinde oluşmuştur." },
+            { name: "Kaklık Mağarası", lat: 37.84, lon: 29.39, region: "akdeniz", desc: "Denizli'de, 'Yeraltındaki Pamukkale' olarak bilinir. Traverten basamakları bulunur." },
+            { name: "İnsuyu Mağarası", lat: 37.64, lon: 30.38, region: "akdeniz", desc: "Burdur'da, Türkiye'nin turizme açılan ilk mağarasıdır. İçinde irili ufaklı göller bulunur." },
+            { name: "Karain Mağarası", lat: 37.07, lon: 30.57, region: "akdeniz", desc: "Antalya'da, Paleolitik çağdan beri yerleşim görmüş, Türkiye'nin en büyük doğal mağaralarından biridir." },
+            { name: "Beldibi Mağarası", lat: 36.72, lon: 30.56, region: "akdeniz", desc: "Antalya-Kemer yolunda, tarih öncesi çağlara ait kaya resimlerinin bulunduğu bir sığınaktır." },
+            { name: "Altınbeşik Mağarası", lat: 37.04, lon: 31.63, region: "akdeniz", desc: "Antalya İbradı'da, dünyanın en büyük üçüncü yeraltı gölüne sahip mağaradır." },
+            { name: "Dim Mağarası", lat: 36.54, lon: 32.11, region: "akdeniz", desc: "Alanya'nın doğusunda, Dim Çayı vadisine bakan, sarkıt ve dikitleriyle ünlü turistik bir mağaradır." },
+            { name: "Damlataş Mağarası", lat: 36.54, lon: 31.99, region: "akdeniz", desc: "Alanya merkezde, astım hastalığına iyi geldiği bilinen, Türkiye'nin en ünlü mağaralarından biridir." },
+            { name: "Astım Mağarası", lat: 36.44, lon: 34.03, region: "akdeniz", desc: "Mersin Silifke'de, Cennet-Cehennem obruklarının yakınında bulunan, nem oranı yüksek bir mağaradır." },
+            { name: "Tuz Mağarası", lat: 40.60, lon: 33.61, region: "icanadolu", desc: "Çankırı'da, Hititler döneminden beri işletilen, Türkiye'nin en büyük kaya tuzu rezervidir." },
+            { name: "Ballıca Mağarası", lat: 40.32, lon: 36.30, region: "karadeniz", desc: "Tokat Pazar'da, soğan sarkıtları ile dünyaca ünlü, 8 salondan oluşan devasa bir mağaradır." },
+            { name: "Hassa Lav Tüpü", lat: 36.80, lon: 36.52, region: "akdeniz", desc: "Hatay Hassa'da, volkanik patlamalar sonucu oluşan, Türkiye'nin ilk lav tüpü mağarasıdır." },
+            { name: "Karaca Mağarası", lat: 40.54, lon: 39.40, region: "karadeniz", desc: "Gümüşhane'de, damlataşı oluşumları bakımından dünyanın en zengin mağaralarından biridir." }
+        ];
+
+        const audioController = {
+            ctx: null, isMuted: false,
+            init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            toggleMute: function() { 
+                this.isMuted = !this.isMuted; 
+                if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); 
+                document.querySelector('.sound-on-icon').classList.toggle('hidden', this.isMuted);
+                document.querySelector('.sound-off-icon').classList.toggle('hidden', !this.isMuted);
+                return this.isMuted; 
+            },
+            play: function(type) {
+                if (this.isMuted) return;
+                if (!this.ctx) this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const t = this.ctx.currentTime; const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                
+                if (type === 'success') {
+                    osc.type = 'sine'; 
+                    osc.frequency.setValueAtTime(500, t); 
+                    osc.frequency.exponentialRampToValueAtTime(1000, t + 0.1); 
+                    gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3); 
+                    osc.start(t); osc.stop(t + 0.3);
+                } else if (type === 'error') {
+                    osc.type = 'square'; 
+                    osc.frequency.setValueAtTime(150, t); 
+                    gain.gain.setValueAtTime(0.1, t); gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2); 
+                    osc.start(t); osc.stop(t + 0.2);
+                } else if (type === 'click') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(800, t); gain.gain.setValueAtTime(0.05, t);
+                    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05); 
+                    osc.start(t); osc.stop(t + 0.05);
+                }
+            }
+        };
+
+        const game = {
+            svg: null, geoBounds: { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 },
+            viewBox: { w: 1000, h: 450 }, scale: 1, offsetX: 0, offsetY: 0,
+            state: { score: 0, remaining: [], current: null, active: false, correct: 0, wrong: 0, secondsElapsed: 0, timerInterval: null, isLightMode: false },
+            drawnLabels: [],
+
+            init: function() {
+                const url = (MAP_DATA_URL === 'tr.json') ? FALLBACK_URL : MAP_DATA_URL;
+                this.fetchMapData(url);
+                lucide.createIcons();
+                this.updateThemeIcon();
+                document.body.addEventListener('click', () => audioController.init(), { once: true });
+                window.addEventListener('resize', () => { if(this.svg) this.loadMap(this.mapData); });
+            },
+
+            toggleTheme: function() {
+                this.state.isLightMode = !this.state.isLightMode;
+                document.body.classList.toggle('light-mode', this.state.isLightMode);
+                this.updateThemeIcon();
+            },
+
+            updateThemeIcon: function() {
+                const isLight = this.state.isLightMode;
+                document.querySelector('.light-icon').classList.toggle('hidden', isLight);
+                document.querySelector('.dark-icon').classList.toggle('hidden', !isLight);
+            },
+
+            fetchMapData: function(url) {
+                fetch(url).then(r => r.json()).then(data => {
+                    this.mapData = data; this.loadMap(data);
+                    document.getElementById('loading-overlay').classList.add('opacity-0', 'pointer-events-none');
+                    this.start();
+                }).catch(err => {
+                    document.querySelector('.loader').style.display = 'none';
+                    document.getElementById('error-container').classList.remove('hidden');
+                });
+            },
+
+            scanCoords: function(coords) {
+                if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number') {
+                    if (coords[0] < this.geoBounds.minLon) this.geoBounds.minLon = coords[0];
+                    if (coords[0] > this.geoBounds.maxLon) this.geoBounds.maxLon = coords[0];
+                    if (coords[1] < this.geoBounds.minLat) this.geoBounds.minLat = coords[1];
+                    if (coords[1] > this.geoBounds.maxLat) this.geoBounds.maxLat = coords[1];
+                } else if (Array.isArray(coords)) coords.forEach(c => this.scanCoords(c));
+            },
+
+            project: function(lon, lat) {
+                return { x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) };
+            },
+
+            loadMap: function(data) {
+                this.svg = document.getElementById('game-map');
+                const layerProvinces = document.getElementById('layer-provinces');
+                layerProvinces.innerHTML = '';
+                document.getElementById('layer-markers').innerHTML = '';
+                document.getElementById('layer-labels').innerHTML = '';
+
+                this.geoBounds = { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 };
+                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
+                caveData.forEach(d => this.scanCoords([[d.lon, d.lat]]));
+                
+                const isMobile = window.innerWidth < 768;
+                const topReserved = isMobile ? 80 : 60; const bottomReserved = isMobile ? 60 : 40;
+                this.geoBounds.minLat -= 0.5; 
+
+                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+                const padding = 20; const availableHeight = this.viewBox.h - topReserved - bottomReserved;
+                
+                const scaleW = (this.viewBox.w - 2 * padding) / lonSpan;
+                const scaleH = (availableHeight - 2 * padding) / latSpan;
+                this.scale = Math.min(scaleW, scaleH);
+                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+                this.offsetY = this.viewBox.h - topReserved - (latSpan * this.scale);
+
+                data.features.forEach(f => {
+                    const d = this.createPathD(f.geometry);
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d); path.setAttribute("class", "province-path");
+                    layerProvinces.appendChild(path);
+                });
+                this.drawMarkers();
+            },
+
+            createPathD: function(geometry) {
+                let d = "";
+                const polys = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        let ringD = "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]); ringD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `; if (i === 0) ringD += "L";
+                        });
+                        ringD += "Z "; d += ringD;
+                    });
+                });
+                return d;
+            },
+
+            drawMarkers: function() {
+                const layer = document.getElementById('layer-markers');
+                this.state.remaining = [...caveData];
+                this.drawnLabels = []; // Reset labels
+
+                caveData.forEach(d => { const p = this.project(d.lon, d.lat); d.visX = p.x; d.visY = p.y; });
+                
+                const iterations = 10; const minDist = 14; 
+                for(let iter=0; iter<iterations; iter++) {
+                    for (let i = 0; i < caveData.length; i++) {
+                        for (let j = i + 1; j < caveData.length; j++) {
+                            let p1 = caveData[i]; let p2 = caveData[j];
+                            let dx = p1.visX - p2.visX; let dy = p1.visY - p2.visY;
+                            let dist = Math.sqrt(dx*dx + dy*dy);
+                            if (dist < minDist) {
+                                if (dist === 0) { dx = Math.random()-0.5; dy = Math.random()-0.5; dist = 1; }
+                                let overlap = (minDist - dist) / 2;
+                                let moveX = (dx / dist) * overlap; let moveY = (dy / dist) * overlap;
+                                p1.visX += moveX; p1.visY += moveY; p2.visX -= moveX; p2.visY -= moveY;
+                            }
+                        }
+                    }
+                }
+
+                caveData.forEach((wData) => {
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "game-marker");
+                    g.setAttribute("transform", `translate(${wData.visX}, ${wData.visY})`);
+                    g.onclick = (e) => { e.stopPropagation(); this.checkAnswer(wData, g); };
+
+                    const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    innerG.setAttribute("class", "marker-content");
+                    const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hitArea.setAttribute("r", "10"); hitArea.setAttribute("fill", "transparent");
+                    innerG.appendChild(hitArea);
+                    
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    shape.setAttribute("class", "marker-shape");
+                    // Smaller Pin Shape (approx 0.65x scale of original)
+                    shape.setAttribute("d", "M 0,-8 C -4.5,-8 -8,-4.5 -8,0 C -8,6 0,13 0,13 C 0,13 8,6 8,0 C 8,-4.5 4.5,-8 0,-8 Z M 0,-1.5 A 2,2 0 1 1 0,2.5 A 2,2 0 0 1 0,-1.5"); 
+                    
+                    let fillColor = "#ffffff";
+                    const rootStyle = getComputedStyle(document.documentElement);
+                    if (wData.region === "marmara") fillColor = rootStyle.getPropertyValue('--region-marmara');
+                    else if (wData.region === "akdeniz") fillColor = rootStyle.getPropertyValue('--region-akdeniz');
+                    else if (wData.region === "karadeniz") fillColor = rootStyle.getPropertyValue('--region-karadeniz');
+                    else if (wData.region === "icanadolu") fillColor = rootStyle.getPropertyValue('--region-icanadolu');
+                    if (!fillColor || fillColor.trim() === '') fillColor = "#38bdf8";
+                    shape.style.fill = fillColor; 
+                    innerG.appendChild(shape); g.appendChild(innerG); layer.appendChild(g); wData.el = g;
+                });
+            },
+
+            start: function() {
+                this.state.active = true; this.state.score = 0; this.state.correct = 0; this.state.wrong = 0; this.state.secondsElapsed = 0;
+                this.updateUI(); this.nextQuestion();
+                document.getElementById('question-panel').classList.remove('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+                this.startChronometer();
+            },
+
+            startChronometer: function() {
+                if(this.state.timerInterval) clearInterval(this.state.timerInterval);
+                const timerEl = document.getElementById('timer');
+                this.state.timerInterval = setInterval(() => {
+                    if (!this.state.active) return;
+                    this.state.secondsElapsed++;
+                    const m = Math.floor(this.state.secondsElapsed / 60).toString().padStart(2, '0');
+                    const s = (this.state.secondsElapsed % 60).toString().padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                }, 1000);
+            },
+
+            nextQuestion: function() {
+                if (this.state.remaining.length === 0) { this.endGame(); return; }
+                let idx = Math.floor(Math.random() * this.state.remaining.length);
+                this.state.current = this.state.remaining[idx];
+                document.getElementById('target-name').innerText = this.state.current.name.replace(" Mağarası", "").replace(" Mağarası", "");
+                
+                // Clean up previous hints
+                document.querySelectorAll('.game-marker.hint-active').forEach(el => el.classList.remove('hint-active'));
+            },
+
+            checkAnswer: function(data, el) {
+                if (!this.state.active) return;
+                if (el.classList.contains('found')) return; 
+                
+                const contentEl = el.querySelector('.marker-content');
+                if (data.name === this.state.current.name) {
+                    audioController.play('success'); el.classList.add('found'); el.classList.remove('hint-active');
+                    this.addLabel(data);
+                    this.state.score += 10; this.state.correct++;
+                    this.spawnFloatingText("+10", el, "text-[var(--status-success)]");
+                    this.state.remaining = this.state.remaining.filter(m => m.name !== data.name);
+                    this.updateUI();
+                    this.showStatus("DOĞRU!", "bg-[var(--status-success)] text-white border-none");
+                    setTimeout(() => { this.showInfo(data); }, 600); 
+                } else {
+                    audioController.play('error');
+                    contentEl.classList.add('shake'); setTimeout(() => contentEl.classList.remove('shake'), 500);
+                    this.state.score = Math.max(0, this.state.score - 5); this.state.wrong++;
+                    this.spawnFloatingText("-5", el, "text-[var(--status-error)]");
+                    this.updateUI();
+                    this.showStatus("YANLIŞ!", "bg-[var(--status-error)] text-white border-none");
+                }
+            },
+            
+            showInfo: function(data) {
+                clearInterval(this.state.timerInterval);
+                const modal = document.getElementById('info-modal');
+                const card = document.getElementById('info-card');
+                document.getElementById('info-title').innerText = data.name.replace(" Mağarası", "");
+                document.getElementById('info-type').innerText = data.region.toUpperCase() + " BÖLGESİ";
+                document.getElementById('info-desc').innerText = data.desc;
+                
+                let color = "#38bdf8";
+                if (data.region === "marmara") color = "var(--region-marmara)";
+                else if (data.region === "akdeniz") color = "var(--region-akdeniz)";
+                else if (data.region === "karadeniz") color = "var(--region-karadeniz)";
+                else if (data.region === "icanadolu") color = "var(--region-icanadolu)";
+                
+                modal.style.setProperty('--theme-color', color);
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                card.classList.remove('scale-90'); card.classList.add('scale-100');
+            },
+
+            closeInfo: function() {
+                const modal = document.getElementById('info-modal');
+                const card = document.getElementById('info-card');
+                card.classList.remove('scale-100'); card.classList.add('scale-90');
+                modal.classList.add('opacity-0', 'pointer-events-none');
+                this.startChronometer(); this.nextQuestion();
+            },
+
+            hint: function() {
+                if (!this.state.active || !this.state.current) return;
+                audioController.play('click');
+                const target = caveData.find(m => m.name === this.state.current.name);
+                this.state.score = Math.max(0, this.state.score - 5); this.updateUI();
+                const btn = document.getElementById('hint-btn');
+                this.spawnFloatingText("-5", btn, "text-[var(--text-muted)]");
+                
+                if (target && target.el) {
+                    target.el.classList.add('hint-active'); 
+                    
+                    const layer = document.getElementById('layer-effects');
+                    const ping = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    ping.setAttribute("cx", target.visX); ping.setAttribute("cy", target.visY);
+                    ping.setAttribute("r", 0); ping.setAttribute("fill", "none");
+                    ping.setAttribute("stroke", "var(--status-warn)"); ping.setAttribute("stroke-width", "2");
+                    ping.innerHTML = `<animate attributeName="r" from="0" to="50" dur="1s" repeatCount="1" /> <animate attributeName="opacity" from="1" to="0" dur="1s" repeatCount="1" />`;
+                    layer.appendChild(ping); setTimeout(() => ping.remove(), 1100);
+                }
+            },
+
+            addLabel: function(data) {
+                const layer = document.getElementById('layer-labels');
+                let displayName = data.name.replace(" Mağarası", "").replace(" Mağarası", "");
+                if (displayName === "Hassa Lav Tüpü") displayName = "Hassa";
+
+                let x = data.visX; 
+                let y = data.visY - 14; 
+                
+                let tooClose = false;
+                for (let label of this.drawnLabels) {
+                    let dx = x - label.x;
+                    let dy = y - label.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < 18) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (displayName === "Dim") { x += 10; y += 4; }
+                else if (displayName === "Damlataş") { x -= 10; y += 4; }
+                else if (displayName === "Karain") { 
+                    x -= 14; 
+                    y = data.visY - 10; 
+                }
+                else if (displayName === "Beldibi") { y += 16; }
+                else if (tooClose) { y = data.visY + 16; } 
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("class", "map-label-text");
+                text.setAttribute("x", x); text.setAttribute("y", y);
+                text.textContent = displayName;
+                layer.appendChild(text);
+                
+                this.drawnLabels.push({x, y, name: displayName});
+            },
+            
+            spawnFloatingText: function(text, el, colorClass) {
+                 const container = document.body; const rect = el.getBoundingClientRect();
+                 const floatEl = document.createElement("div");
+                 floatEl.innerText = text; floatEl.className = `floating-score ${colorClass}`;
+                 floatEl.style.left = (rect.left + rect.width/2 - 20) + "px"; 
+                 floatEl.style.top = (rect.top - 20) + "px";
+                 container.appendChild(floatEl); setTimeout(() => floatEl.remove(), 1000);
+            },
+
+            showStatus: function(msg, classes) {
+                const el = document.getElementById('status-msg');
+                el.innerText = msg;
+                el.className = `absolute bottom-24 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg shadow-lg font-bold text-base transition-all duration-300 transform translate-y-0 opacity-100 z-50 flex items-center gap-2 ${classes}`;
+                setTimeout(() => { el.classList.add('translate-y-8', 'opacity-0'); el.classList.remove('translate-y-0', 'opacity-100'); }, 1500);
+            },
+            
+            endGame: function() {
+                this.state.active = false;
+                clearInterval(this.state.timerInterval);
+                audioController.play('success'); 
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 0;
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('final-accuracy').innerText = accuracy + "%";
+                this.triggerConfetti();
+                const modal = document.getElementById('game-over-modal');
+                modal.classList.remove('hidden'); modal.classList.add('flex');
+            },
+
+            triggerConfetti: function() {
+                var duration = 3000; var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200, colors: ['#38bdf8', '#818cf8', '#34d399', '#ffffff'] };
+                var interval = setInterval(function() {
+                  var timeLeft = animationEnd - Date.now();
+                  if (timeLeft <= 0) { return clearInterval(interval); }
+                  var particleCount = 50 * (timeLeft / duration);
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random()*0.2 + 0.1, y: Math.random() - 0.2 } }));
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: Math.random()*0.2 + 0.7, y: Math.random() - 0.2 } }));
+                }, 250);
+            },
+
+            updateUI: function() {
+                document.getElementById('score').innerText = this.state.score;
+                document.getElementById('remaining').innerText = this.state.remaining.length;
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 100;
+                document.getElementById('accuracy').innerText = accuracy + "%";
+            },
+
+            toggleAudio: function() { audioController.toggleMute(); }
+        };
+        
+        window.toggleMobileMenu = () => {
+             const menu = document.getElementById('mobile-menu');
+             const menuIcon = document.getElementById('menu-icon');
+             const closeIcon = document.getElementById('close-icon');
+             if (menu.style.maxHeight) {
+                 menu.style.maxHeight = null; menu.style.opacity = 0;
+                 menuIcon.classList.remove('hidden'); closeIcon.classList.add('hidden');
+             } else {
+                 menu.style.maxHeight = "300px"; menu.style.opacity = 1;
+                 menuIcon.classList.add('hidden'); closeIcon.classList.remove('hidden');
+             }
+        };
+
+        game.init();
+    </script>
+</body>
+</html>

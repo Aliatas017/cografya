@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Tektonik Ovaları - Coğrafya Oyunları</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- MERGED PALETTE --- */
+            --bg-body: #020617;         
+            --bg-dots: #1e293b;         
+            --panel-bg: #0f172a;        
+            --panel-border: #334155;    
+            --text-primary: #f8fafc;    
+            --text-secondary: #94a3b8;  
+            --text-label: #ffffff;      
+            
+            --accent-primary: #f43f5e; 
+            --accent-glow: rgba(244, 63, 94, 0.2);  
+            --accent-warn: #fbbf24;     
+            --accent-danger: #f87171;   
+            --accent-success: #4ade80;  
+
+            --glass-bg: rgba(15, 23, 42, 0.95); 
+            --map-bg: #0f172a;          
+            --map-border: #1e293b;      
+            --map-grad-start: #1e293b;
+            --map-grad-end: #020617;
+
+            --province-fill: #1e293b;   
+            --province-stroke: #475569; 
+            --province-hover: #334155;
+
+            /* FAY HATTI VE MARKER RENKLERİ (NEON) */
+            --color-kaf: #ff0055;      /* Kuzey Anadolu Fayı - Neon Pembe/Kırmızı */
+            --color-daf: #ff9100;      /* Doğu Anadolu Fayı - Neon Turuncu */
+            --color-baf: #d500f9;      /* Batı Anadolu Fayı - Neon Mor */
+            
+            --marker-found-fill: #00e5ff; /* Cyan */
+            --marker-found-stroke: #ffffff;
+            
+            --city-text: #64748b;
+            --city-dot: #475569;
+            
+            /* LABEL STYLES - MINIMALIST DIRECT TEXT */
+            --label-text-color: #ffffff;
+            --label-stroke-color: #020617; /* Arka plan rengiyle aynı kontur */
+        }
+
+        body.light-mode {
+            --bg-body: #f1f5f9;         
+            --bg-dots: #cbd5e1;         
+            --panel-bg: #ffffff;        
+            --panel-border: #cbd5e1;    
+            --text-primary: #0f172a;    
+            --text-secondary: #475569;  
+            --text-label: #0f172a;      
+            --accent-primary: #e11d48;
+            --map-bg: #e2e8f0;          
+            --map-border: #94a3b8;      
+            --map-grad-start: #f8fafc;
+            --map-grad-end: #e2e8f0;
+            --province-fill: #ffffff;   
+            --province-stroke: #94a3b8; 
+            --province-hover: #f1f5f9;
+            
+            /* Light Mode Colors */
+            --color-kaf: #d50000;
+            --color-daf: #ef6c00;
+            --color-baf: #aa00ff;
+            
+            --marker-found-fill: #00b8d4; 
+            --marker-found-stroke: #f0f9ff;
+            --city-text: #94a3b8;
+            --city-dot: #cbd5e1;
+            
+            --label-text-color: #0f172a;
+            --label-stroke-color: #ffffff;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text-primary);
+            overflow: hidden; 
+            user-select: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- UI COMPONENTS --- */
+        header, footer {
+            background-color: var(--glass-bg);
+            border-color: var(--panel-border);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+        }
+
+        .theme-toggle-btn {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+        .stats-bar {
+            display: flex; gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--panel-border);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stat-chip {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            min-width: 70px;
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+        .stat-value { font-size: 1rem; font-weight: 800; line-height: 1.1; }
+
+        #question-panel {
+            background: var(--panel-bg);
+            border: 3px solid var(--accent-primary);
+            border-radius: var(--radius-lg);
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+            width: fit-content; max-width: 90vw; 
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            z-index: 40; transition: all 0.3s;
+        }
+        .target-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); font-weight: 700; }
+        .target-name { font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--accent-primary); white-space: nowrap; }
+
+        #hint-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white; font-weight: 700; font-size: 0.75rem; padding: 0.5rem 0.8rem;
+            border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+            display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #hint-btn:active { transform: scale(0.95); }
+
+        /* --- MAP & MARKERS --- */
+        #map-container {
+            flex-grow: 1; position: relative;
+            background-color: var(--map-bg);
+            background-image: radial-gradient(circle at 50% 50%, var(--map-grad-start) 0%, var(--map-grad-end) 100%);
+            overflow: hidden; width: 100%;
+        }
+
+        .province-path {
+            fill: var(--province-fill); stroke: var(--province-stroke); stroke-width: 0.5px;
+            transition: all 0.2s ease; vector-effect: non-scaling-stroke;
+        }
+        .province-path:hover { fill: var(--province-hover); stroke: var(--accent-primary); stroke-width: 2px; }
+        .city-label { fill: var(--city-text); font-weight: 500; font-size: 6px; pointer-events: none; }
+        .city-dot { fill: var(--city-dot); pointer-events: none; }
+
+        /* FAY HATLARI */
+        .fault-line {
+            fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 4px;
+            opacity: 0.4; 
+            vector-effect: non-scaling-stroke;
+            pointer-events: none;
+        }
+        .fault-kaf { stroke: var(--color-kaf); }
+        .fault-daf { stroke: var(--color-daf); }
+        .fault-baf { stroke: var(--color-baf); }
+
+        /* MARKERS */
+        .game-marker { cursor: pointer; transition: opacity 0.2s; }
+        .marker-content { transform-origin: center; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        
+        .marker-shape {
+            stroke: var(--bg-body); 
+            stroke-width: 1.5px; 
+            transition: fill 0.3s, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform: scale(1.0); 
+            vector-effect: non-scaling-stroke;
+        }
+        
+        .game-marker:hover .marker-shape { transform: scale(1.8); stroke: var(--text-primary); z-index: 50; }
+        
+        .game-marker.found .marker-shape { 
+            fill: var(--marker-found-fill) !important; 
+            stroke: var(--marker-found-stroke); 
+            stroke-width: 1.5px; 
+            transform: scale(1.3); 
+        }
+
+        /* --- ULTRA MINIMALIST DIRECT LABELS --- */
+        .map-label-text { 
+            fill: var(--label-text-color); 
+            font-weight: 800; /* Ekstra kalın */
+            font-size: 8px; /* Okunabilir boyut */
+            pointer-events: none; 
+            text-anchor: middle; 
+            dominant-baseline: central;
+            
+            /* Kontur Efekti (Halo) */
+            stroke: var(--label-stroke-color);
+            stroke-width: 2.5px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            paint-order: stroke; 
+            
+            opacity: 0;
+            animation: fadeIn 0.4s ease-out forwards;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Legend */
+        .legend-box {
+            position: absolute; bottom: 20px; left: 20px;
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: var(--radius-md); padding: 0.8rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            pointer-events: none; opacity: 0.8;
+        }
+        .legend-row { display: flex; gap: 1rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+        .legend-svg { width: 14px; height: 14px; overflow: visible; }
+
+        /* Mobile Menu */
+        #mobile-menu {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0; opacity: 0; overflow: hidden;
+        }
+        #mobile-menu.open { max-height: 400px; opacity: 1; }
+
+        /* Helper Animations */
+        .pulse-text { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .score-float { position: absolute; font-weight: 900; font-size: 1.5rem; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 1000; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .loader { width: 48px; height: 48px; border: 5px solid var(--panel-border); border-bottom-color: var(--accent-primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Game Over Modal */
+        #game-over-modal { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        .modal-content { background: var(--panel-bg); border: 2px solid var(--panel-border); border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+        /* --- INFO MODAL --- */
+        #info-modal {
+            background-color: rgba(2, 6, 23, 0.85);
+            backdrop-filter: blur(16px);
+            transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            perspective: 1000px;
+        }
+        
+        #info-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            border-radius: 24px;
+            transform: scale(0.95) translateY(20px) rotateX(10deg);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative; overflow: hidden;
+        }
+
+        #info-card::after {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none; mix-blend-mode: overlay;
+        }
+
+        #info-modal.active { opacity: 1; pointer-events: auto; }
+        #info-modal.active #info-card { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
+        #info-modal:not(.active) { opacity: 0; pointer-events: none; }
+
+        .card-glow-strip {
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: var(--theme-color);
+            box-shadow: 0 0 20px var(--theme-color);
+            z-index: 20;
+        }
+
+        .info-theme-kaf { --theme-color: #ff0055; --theme-bg: rgba(255, 0, 85, 0.1); }
+        .info-theme-daf { --theme-color: #ff9100; --theme-bg: rgba(255, 145, 0, 0.1); }
+        .info-theme-baf { --theme-color: #d500f9; --theme-bg: rgba(213, 0, 249, 0.1); }
+
+        .continue-btn {
+            background: var(--theme-color); color: #0f172a; position: relative; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .continue-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px var(--theme-bg), 0 0 15px var(--theme-color); filter: brightness(1.1); }
+        
+        .icon-halo {
+            position: absolute; inset: -10px; border-radius: 50%;
+            border: 2px dashed var(--theme-color); opacity: 0.3;
+            animation: spin 10s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] bg-[var(--bg-body)] flex items-center justify-center">
+        <div class="text-center">
+            <span class="loader mb-6"></span>
+            <h2 class="text-xl font-bold tracking-tight" style="color:var(--text-primary)">Harita Yükleniyor...</h2>
+            <div id="error-container" class="hidden mt-4">
+                <p class="text-red-400 text-sm" id="error-msg">Hata oluştu.</p>
+                <button onclick="location.reload()" class="mt-2 text-xs border border-red-500 px-3 py-1 text-red-400 rounded">Yenile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b-2 border-[var(--panel-border)]">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative bg-inherit">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 select-none cursor-pointer group" onclick="location.href='index.html'">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-105" 
+                         style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary);">
+                        <i data-lucide="activity" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-sm leading-tight tracking-tight" style="color: var(--text-primary)">TEKTONİK OVALAR</h1>
+                        <p class="text-[9px] font-bold tracking-widest uppercase" style="color: var(--text-secondary)">Harita Oyunu</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex items-center gap-4 border-l border-[var(--panel-border)] pl-4 h-8">
+                    <a href="index.html" class="nav-link text-xs">Ana Sayfa</a>
+                    <span class="text-[10px] text-[var(--text-secondary)]">/</span>
+                    <span class="text-xs font-bold text-[var(--accent-primary)]">Oyun</span>
+                </nav>
+            </div>
+            <div class="flex items-center gap-2">
+                <button onclick="game.toggleAudio()" class="theme-toggle-btn" title="Sesi Aç/Kapat">
+                    <i data-lucide="volume-2" class="w-4 h-4 sound-on-icon"></i>
+                    <i data-lucide="volume-x" class="w-4 h-4 sound-off-icon hidden"></i>
+                </button>
+                <button onclick="game.toggleTheme()" class="theme-toggle-btn" title="Tema Değiştir">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark-icon"></i>
+                    <i data-lucide="moon" class="w-4 h-4 light-icon"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden theme-toggle-btn ml-1">
+                    <i data-lucide="menu" id="menu-icon" class="w-4 h-4"></i>
+                    <i data-lucide="x" id="close-icon" class="w-4 h-4 hidden"></i>
+                </button>
+            </div>
+        </div>
+        <div id="mobile-menu" class="md:hidden bg-[var(--panel-bg)] border-b border-[var(--panel-border)] w-full absolute top-16 left-0 z-40 shadow-xl">
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm">Ana Sayfa</a>
+                <a href="#" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm">Hakkımızda</a>
+                <hr class="border-[var(--panel-border)] my-1">
+                <div class="flex gap-2">
+                    <button class="auth-btn btn-login w-full border border-[var(--panel-border)]">Giriş</button>
+                    <button class="auth-btn btn-signup w-full">Kayıt</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col relative overflow-hidden">
+        <div class="stats-bar z-10 shadow-sm">
+            <div class="stat-chip">
+                <span class="stat-label">Süre</span>
+                <span class="stat-value" style="color: var(--accent-warn)" id="timer">00:00</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">Puan</span>
+                <span class="stat-value" style="color: var(--accent-success)" id="score">0</span>
+            </div>
+            <div class="stat-chip hidden sm:flex">
+                <span class="stat-label">Doğruluk</span>
+                <span class="stat-value" style="color: var(--accent-primary)" id="accuracy">100%</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">Kalan</span>
+                <span class="stat-value" style="color: var(--text-secondary)" id="remaining">0</span>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div id="question-panel" class="opacity-0 pointer-events-none">
+                <div class="text-content-wrapper">
+                    <div class="target-label">HEDEF OVA</div>
+                    <div class="target-name pulse-text" id="target-name">...</div>
+                </div>
+                <button onclick="game.hint()" id="hint-btn"><i data-lucide="eye" class="w-3 h-3"></i> İPUCU</button>
+            </div>
+
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="map-content">
+                    <g id="layer-provinces"></g>
+                    <g id="layer-cities"></g>
+                    <g id="layer-faults"></g> <!-- Fay Hatları -->
+                    <g id="layer-lines"></g> 
+                    <g id="layer-markers"></g>
+                    <g id="layer-labels"></g> 
+                    <g id="layer-effects"></g>
+                </g>
+            </svg>
+
+            <div class="legend-box hidden sm:flex">
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M 0,-6 L 6,0 L 0,6 L -6,0 Z" style="fill: var(--color-kaf)" stroke="currentColor" stroke-width="1.5"></path></svg>KAF (Kuzey)</div>
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M 0,-6 L 6,0 L 0,6 L -6,0 Z" style="fill: var(--color-daf)" stroke="currentColor" stroke-width="1.5"></path></svg>DAF (Doğu)</div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M 0,-6 L 6,0 L 0,6 L -6,0 Z" style="fill: var(--color-baf)" stroke="currentColor" stroke-width="1.5"></path></svg>BAF (Batı)</div>
+                </div>
+            </div>
+            <div id="status-msg" class="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2 border-2"></div>
+        </div>
+    </main>
+    
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div id="info-card" class="rounded-3xl p-0 max-w-sm w-full relative">
+             <div class="card-glow-strip"></div>
+             <div class="absolute -right-8 -top-8 opacity-10 rotate-12 pointer-events-none" style="color: var(--theme-color)">
+                 <i data-lucide="activity" class="w-40 h-40"></i>
+             </div>
+             <div class="relative px-6 pt-10 pb-2 text-center z-10">
+                 <div class="relative inline-flex items-center justify-center w-16 h-16 mb-4">
+                    <div class="icon-halo"></div>
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-lg" style="background: var(--theme-color); color: #0f172a;">
+                        <i data-lucide="check" class="w-7 h-7 stroke-[3px]"></i>
+                    </div>
+                 </div>
+                 <h3 class="text-3xl font-black mb-2 tracking-tight text-white drop-shadow-md" id="info-title">Ova Adı</h3>
+                 <span class="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10" 
+                       style="background: var(--theme-bg); color: var(--theme-color)" 
+                       id="info-type">FAY</span>
+             </div>
+             <div class="px-8 pb-8 pt-4 relative z-10">
+                 <div class="p-0">
+                     <p class="text-[13px] leading-relaxed font-medium text-slate-300 text-center" id="info-desc">Açıklama</p>
+                 </div>
+                 <button onclick="game.closeInfo()" class="continue-btn w-full mt-8 py-4 rounded-xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 group">
+                     <span>Devam Et</span>
+                     <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+                 </button>
+             </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-[var(--panel-border)] z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div class="text-[10px] font-medium" style="color: var(--text-secondary)">&copy; 2024 Coğrafya Oyunları.</div>
+            <div class="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)]">
+                <i data-lucide="code-2" class="w-3 h-3" style="color: var(--accent-primary)"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-secondary)">Ali Ataş</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="modal-content w-full max-w-sm text-center">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2" style="background: var(--panel-bg); border-color: var(--accent-warn); color: var(--accent-warn)">
+                <i data-lucide="trophy" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--text-primary)">Tebrikler!</h2>
+            <p class="mb-6 text-xs" style="color: var(--text-secondary)">Tüm ovaları buldunuz.</p>
+            <div class="space-y-3 mb-6">
+                 <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Puan</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-success)" id="final-score">0</span>
+                    </div>
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Başarı</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-primary)" id="final-accuracy">0%</span>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <div class="text-[10px] font-bold uppercase mb-1" style="color: var(--text-secondary)">Doğru</div>
+                        <div class="text-lg font-bold" style="color: var(--accent-success)" id="final-correct">0</div>
+                    </div>
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <div class="text-[10px] font-bold uppercase mb-1" style="color: var(--text-secondary)">Yanlış</div>
+                        <div class="text-lg font-bold" style="color: var(--accent-danger)" id="final-wrong">0</div>
+                    </div>
+                </div>
+            </div>
+            <button onclick="location.reload()" class="w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border shadow-lg hover:-translate-y-0.5" style="background: var(--accent-primary); color: var(--bg-body); border-color: var(--accent-primary)">Tekrar Oyna</button>
+            <button onclick="location.href='index.html'" class="w-full mt-3 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border hover:bg-[var(--bg-dots)]" style="color: var(--text-secondary); border-color: var(--panel-border)">Ana Sayfa</button>
+        </div>
+    </div>
+
+    <script>
+        const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json'; 
+        const FALLBACK_URL = 'https://raw.githubusercontent.com/alpers/Turkey-Maps-GeoJSON/master/tr-cities-utf8.json';
+
+        const plainData = [
+            // KAF
+            { name: "Erzincan Ovası", lat: 39.75, lon: 39.49, type: "KAF", info: "1939 ve 1992 depremleriyle bilinir. Fırat Nehri (Karasu) tarafından sulanır." },
+            { name: "Tercan Ovası", lat: 39.78, lon: 40.39, type: "KAF", info: "Fırat Nehri'nin yukarı havzasında yer alır." },
+            { name: "Niksar Ovası", lat: 40.58, lon: 36.95, type: "KAF", info: "Kelkit Çayı havzasındadır. Mikro klima özelliği gösterir." },
+            { name: "Erbaa Ovası", lat: 40.69, lon: 36.56, type: "KAF", info: "Tütün ve tuğla-toprak sanayisi ile öne çıkar." },
+            { name: "Amasya Ovası", lat: 40.65, lon: 35.83, type: "KAF", info: "Yeşilırmak vadisindedir. Elma ve sebze üretimi yaygındır." },
+            { name: "Suluova Ovası", lat: 40.83, lon: 35.66, type: "KAF", info: "Şeker pancarı tarımı ve besi hayvancılığı gelişmiştir." },
+            { name: "Taşova Ovası", lat: 40.76, lon: 36.32, type: "KAF", info: "Yeşilırmak kenarında verimli bir ovadır." },
+            { name: "Merzifon Ovası", lat: 40.87, lon: 35.46, type: "KAF", info: "Karasal iklim hakimdir. Tahıl ve ayçiçeği yetişir." },
+            { name: "Tosya Ovası", lat: 41.01, lon: 34.03, type: "KAF", info: "Pirinç (Çeltik) üretimiyle markalaşmıştır." },
+            { name: "Bolu-Düzce Ovası", lat: 40.78, lon: 31.36, type: "KAF", info: "İstanbul-Ankara yolu üzerindedir. Sanayi ve tarım iç içedir." },
+            { name: "Adapazarı Ovası", lat: 40.77, lon: 30.40, type: "KAF", info: "Akova olarak bilinir. Mısır, patates ve sanayi bölgesidir." },
+            
+            // DAF
+            { name: "Amik Ovası", lat: 36.35, lon: 36.35, type: "DAF", info: "Asi Nehri sular. Türkiye'nin en önemli pamuk üretim alanlarındandır." },
+            { name: "Maraş Ovası", lat: 37.57, lon: 36.93, type: "DAF", info: "Kırmızı biber ve dondurma hammaddesi üretimi önemlidir." },
+            { name: "Elbistan Ovası", lat: 38.20, lon: 37.19, type: "DAF", info: "Büyük linyit yataklarına ve termik santrallere sahiptir." },
+            { name: "Malatya Ovası", lat: 38.35, lon: 38.31, type: "DAF", info: "Dünya kayısı üretim merkezidir." },
+            { name: "Elazığ Ovası", lat: 38.67, lon: 39.22, type: "DAF", info: "Uluova ve Kuzova gibi bölümleri vardır. Şeker pancarı yetişir." },
+            { name: "Bingöl Ovası", lat: 38.88, lon: 40.49, type: "DAF", info: "Hayvancılık faaliyetleri ve yem bitkileri ön plandadır." },
+            { name: "Muş Ovası", lat: 38.74, lon: 41.49, type: "DAF", info: "Türkiye'nin en büyük tektonik ovalarından biridir." },
+
+            // BAF
+            { name: "Bakırçay Ovası", lat: 39.12, lon: 27.18, type: "BAF", info: "Bakırçay Grabeni içindedir. Pamuk ve zeytin tarımı yapılır." },
+            { name: "Akhisar Ovası", lat: 38.92, lon: 27.83, type: "BAF", info: "Zeytin ve tütün üretiminde önemli bir merkezdir." },
+            { name: "Alaşehir Ovası", lat: 38.35, lon: 28.51, type: "BAF", info: "Sultaniye üzümünün başkentidir." },
+            { name: "Küçük Menderes Ovası", lat: 38.15, lon: 27.85, type: "BAF", info: "İncir, zeytin ve sebze üretimiyle çok verimli bir graben ovasıdır." },
+            { name: "Büyük Menderes Ovası", lat: 37.85, lon: 28.00, type: "BAF", info: "Türkiye'nin en büyük graben ovasıdır. İncir ve pamuk deposudur." }
+        ];
+
+        const audioController = {
+            ctx: null, isMuted: false,
+            init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            toggleMute: function() { this.isMuted = !this.isMuted; if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); return this.isMuted; },
+            play: function(type) {
+                if (this.isMuted) return;
+                if (!this.ctx) this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime; const gain = this.ctx.createGain(); gain.connect(this.ctx.destination);
+                if (type === 'success') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'error') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'click') {
+                    const osc = this.ctx.createOscillator(); osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.connect(gain); osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'end') {
+                    [523, 659, 783, 1046].forEach((freq, i) => {
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(this.ctx.destination);
+                        g.gain.setValueAtTime(0, now + i*0.1); g.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.1); g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 1.0); o.start(now + i*0.1); o.stop(now + i*0.1 + 1.0);
+                    });
+                } else if (type === 'achievement') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    notes.forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator();
+                        const g = this.ctx.createGain();
+                        osc.type = 'sine'; osc.frequency.value = freq; osc.connect(g); g.connect(this.ctx.destination);
+                        g.gain.setValueAtTime(0, now + i*0.08); g.gain.linearRampToValueAtTime(0.1, now + i*0.08 + 0.05); g.gain.exponentialRampToValueAtTime(0.001, now + i*0.08 + 0.5);
+                        osc.start(now + i*0.08); osc.stop(now + i*0.08 + 0.5);
+                    });
+                }
+            }
+        };
+
+        const game = {
+            svg: null,
+            geoBounds: { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 },
+            viewBox: { w: 1000, h: 450 },
+            scale: 1, offsetX: 0, offsetY: 0,
+            
+            state: { 
+                score: 0, remaining: [], current: null, active: false, 
+                correct: 0, wrong: 0, isLightMode: false, secondsElapsed: 0, timerInterval: null
+            },
+            drawnLabels: [], 
+
+            init: function() {
+                const url = (MAP_DATA_URL === 'tr.json') ? FALLBACK_URL : MAP_DATA_URL;
+                this.fetchMapData(url);
+                lucide.createIcons();
+                this.updateThemeIcon();
+                document.body.addEventListener('click', () => audioController.init(), { once: true });
+            },
+
+            toggleTheme: function() {
+                this.state.isLightMode = !this.state.isLightMode;
+                document.body.classList.toggle('light-mode', this.state.isLightMode);
+                this.updateThemeIcon();
+            },
+            toggleAudio: function() {
+                const isMuted = audioController.toggleMute();
+                document.querySelector('.sound-on-icon').classList.toggle('hidden', isMuted);
+                document.querySelector('.sound-off-icon').classList.toggle('hidden', !isMuted);
+            },
+            updateThemeIcon: function() {
+                document.querySelector('.light-icon').classList.toggle('hidden', this.state.isLightMode);
+                document.querySelector('.dark-icon').classList.toggle('hidden', !this.state.isLightMode);
+            },
+
+            fetchMapData: function(url) {
+                fetch(url).then(r => r.json()).then(data => {
+                    this.loadMap(data);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    this.start();
+                }).catch(err => {
+                    document.querySelector('.loader').style.display = 'none';
+                    document.getElementById('error-container').classList.remove('hidden');
+                });
+            },
+
+            scanCoords: function(coords) {
+                if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number') {
+                    if (coords[0] < this.geoBounds.minLon) this.geoBounds.minLon = coords[0];
+                    if (coords[0] > this.geoBounds.maxLon) this.geoBounds.maxLon = coords[0];
+                    if (coords[1] < this.geoBounds.minLat) this.geoBounds.minLat = coords[1];
+                    if (coords[1] > this.geoBounds.maxLat) this.geoBounds.maxLat = coords[1];
+                } else if (Array.isArray(coords)) coords.forEach(c => this.scanCoords(c));
+            },
+
+            project: function(lon, lat) {
+                return { 
+                    x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
+                    y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
+                };
+            },
+
+            loadMap: function(data) {
+                this.svg = document.getElementById('game-map');
+                const layerProvinces = document.getElementById('layer-provinces');
+                const layerCities = document.getElementById('layer-cities');
+
+                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
+                plainData.forEach(d => this.scanCoords([[d.lon, d.lat]]));
+                this.geoBounds.minLat -= 0.5;
+
+                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+                const padding = 20;
+                this.scale = Math.min((this.viewBox.w - 2 * padding) / lonSpan, (this.viewBox.h - 2 * padding) / latSpan);
+                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+                this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
+
+                data.features.forEach(f => {
+                    const d = this.createPathD(f.geometry);
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d); path.setAttribute("class", "province-path");
+                    layerProvinces.appendChild(path);
+                    
+                    const center = this.getCentroid(f.geometry);
+                    if(center) {
+                        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        g.setAttribute("class", "city-group");
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", center.x); text.setAttribute("y", center.y + 3);
+                        text.setAttribute("class", "city-label"); text.textContent = f.properties.name;
+                        g.appendChild(text); layerCities.appendChild(g);
+                    }
+                });
+                
+                this.drawFaultLines();
+                this.drawMarkers();
+            },
+
+            createPathD: function(geometry) {
+                let d = "";
+                const polys = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        let ringD = "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]);
+                            ringD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                            if (i === 0) ringD += "L";
+                        });
+                        ringD += "Z "; d += ringD;
+                    });
+                });
+                return d;
+            },
+            
+            getCentroid: function(geometry) {
+                let sx = 0, sy = 0, count = 0;
+                const traverse = (c) => {
+                    if (typeof c[0] === 'number') { const p = this.project(c[0], c[1]); sx += p.x; sy += p.y; count++; } 
+                    else c.forEach(traverse);
+                };
+                traverse(geometry.coordinates);
+                return count ? { x: sx/count, y: sy/count } : null;
+            },
+
+            drawFaultLines: function() {
+                const layer = document.getElementById('layer-faults');
+                layer.innerHTML = "";
+                
+                const kafCoords = [[26.5, 40.5], [28.0, 40.8], [30.5, 40.7], [32.0, 40.7], [35.0, 40.8], [37.5, 40.2], [39.5, 39.7], [41.0, 39.2]];
+                const dafCoords = [[36.1, 36.1], [36.8, 37.4], [38.3, 38.3], [40.7, 39.0], [41.0, 39.2]];
+                const bafLines = [[[26.8, 39.1], [27.8, 39.1]], [[26.8, 38.6], [28.5, 38.5]], [[27.1, 38.1], [28.2, 38.1]], [[27.1, 37.5], [29.0, 37.8]]];
+
+                const createSimpleFault = (coords, typeClass) => {
+                    let d = "M";
+                    coords.forEach((pt, i) => {
+                        const p = this.project(pt[0], pt[1]);
+                        d += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                        if (i < coords.length - 1) d += "L";
+                    });
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d); path.setAttribute("class", `fault-line fault-${typeClass}`);
+                    layer.appendChild(path);
+                };
+
+                createSimpleFault(kafCoords, "kaf");
+                createSimpleFault(dafCoords, "daf");
+                bafLines.forEach(line => createSimpleFault(line, "baf"));
+            },
+
+            drawMarkers: function() {
+                const layer = document.getElementById('layer-markers');
+                layer.innerHTML = "";
+                this.state.remaining = [...plainData];
+                this.drawnLabels = []; 
+
+                // 1. Spacing Logic (Markerları İtme)
+                plainData.forEach(d => { 
+                    const p = this.project(d.lon, d.lat); 
+                    d.visX = p.x; d.visY = p.y; 
+                });
+                
+                const iterations = 10; const minDist = 18; 
+                
+                for(let iter=0; iter<iterations; iter++) {
+                    for (let i = 0; i < plainData.length; i++) {
+                        for (let j = i + 1; j < plainData.length; j++) {
+                            let p1 = plainData[i]; let p2 = plainData[j];
+                            let dx = p1.visX - p2.visX; let dy = p1.visY - p2.visY;
+                            let dist = Math.sqrt(dx*dx + dy*dy);
+                            
+                            if (dist < minDist) {
+                                if (dist === 0) { dx = Math.random()-0.5; dy = Math.random()-0.5; dist = Math.sqrt(dx*dx + dy*dy) || 1; }
+                                let overlap = (minDist - dist) / 2;
+                                let moveX = (dx / dist) * overlap; let moveY = (dy / dist) * overlap;
+                                p1.visX += moveX; p1.visY += moveY;
+                                p2.visX -= moveX; p2.visY -= moveY;
+                            }
+                        }
+                    }
+                }
+
+                plainData.forEach((pData, index) => {
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "game-marker entrance-anim");
+                    g.style.animationDelay = `${index * 0.05}s`;
+                    g.setAttribute("transform", `translate(${pData.visX}, ${pData.visY})`);
+                    g.setAttribute("data-name", pData.name);
+                    g.onclick = (e) => { e.stopPropagation(); this.checkAnswer(pData, g); };
+
+                    const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    innerG.setAttribute("class", "marker-content");
+                    const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hitArea.setAttribute("class", "hit-area"); hitArea.setAttribute("r", "10"); hitArea.setAttribute("fill", "transparent");
+                    innerG.appendChild(hitArea);
+                    
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    shape.setAttribute("class", "marker-shape");
+                    shape.setAttribute("d", "M 0,-6 L 6,0 L 0,6 L -6,0 Z"); // Diamond shape
+                    
+                    // --- COLOR FIX: Apply inline style ---
+                    let fillColor = "#ffffff";
+                    if (pData.type === "KAF") fillColor = "#ff0055"; 
+                    else if (pData.type === "DAF") fillColor = "#ff9100"; 
+                    else if (pData.type === "BAF") fillColor = "#d500f9"; 
+                    
+                    shape.style.fill = fillColor; 
+
+                    innerG.appendChild(shape); 
+                    g.appendChild(innerG); layer.appendChild(g);
+                    pData.el = g;
+                });
+            },
+
+            start: function() {
+                this.state.active = true; this.state.score = 0; this.state.correct = 0; this.state.wrong = 0; this.state.secondsElapsed = 0;
+                this.updateUI(); this.nextQuestion();
+                document.getElementById('question-panel').style.opacity = 1;
+                document.getElementById('question-panel').style.pointerEvents = 'auto';
+                this.startChronometer();
+            },
+
+            startChronometer: function() {
+                if(this.state.timerInterval) clearInterval(this.state.timerInterval);
+                const timerEl = document.getElementById('timer');
+                this.state.timerInterval = setInterval(() => {
+                    if (!this.state.active) return;
+                    this.state.secondsElapsed++;
+                    const m = Math.floor(this.state.secondsElapsed / 60).toString().padStart(2, '0');
+                    const s = (this.state.secondsElapsed % 60).toString().padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                }, 1000);
+            },
+
+            nextQuestion: function() {
+                if (this.state.remaining.length === 0) { this.endGame(); return; }
+                const idx = Math.floor(Math.random() * this.state.remaining.length);
+                this.state.current = this.state.remaining[idx];
+                document.getElementById('target-name').innerText = this.state.current.name;
+            },
+
+            checkAnswer: function(plain, el) {
+                if (!this.state.active) return;
+                if (el.classList.contains('found')) return; 
+                const contentEl = el.querySelector('.marker-content');
+                if (plain.name === this.state.current.name) {
+                    audioController.play('success'); el.classList.add('found');
+                    this.addLabel(plain);
+                    this.state.score += 10; this.state.correct++;
+                    this.spawnFloatingText("+10", el, "text-green-400");
+                    this.state.remaining = this.state.remaining.filter(m => m.name !== plain.name);
+                    this.updateUI();
+                    this.showStatus("Doğru!", "bg-green-600/90 text-white border-green-500");
+                    setTimeout(() => { this.showInfo(plain); }, 1000); 
+                } else {
+                    audioController.play('error');
+                    contentEl.classList.add('shake'); setTimeout(() => contentEl.classList.remove('shake'), 500);
+                    this.state.score -= 5; this.state.wrong++;
+                    this.spawnFloatingText("-5", el, "text-red-400");
+                    this.updateUI();
+                    this.showStatus("Yanlış! Tekrar dene.", "bg-red-600/90 text-white border-red-500");
+                }
+            },
+            
+            showInfo: function(plain) {
+                clearInterval(this.state.timerInterval);
+                audioController.play('achievement');
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, zIndex: 200 });
+                document.getElementById('info-title').innerText = plain.name;
+                document.getElementById('info-type').innerText = plain.type;
+                document.getElementById('info-desc').innerText = plain.info;
+                const card = document.getElementById('info-card');
+                card.classList.remove('info-theme-kaf', 'info-theme-daf', 'info-theme-baf');
+                if(plain.type === "KAF") card.classList.add('info-theme-kaf');
+                else if(plain.type === "DAF") card.classList.add('info-theme-daf');
+                else if(plain.type === "BAF") card.classList.add('info-theme-baf');
+                document.getElementById('info-modal').classList.add('active');
+            },
+
+            closeInfo: function() {
+                document.getElementById('info-modal').classList.remove('active');
+                this.startChronometer(); this.nextQuestion();
+            },
+
+            hint: function() {
+                if (!this.state.active || !this.state.current) return;
+                audioController.play('click');
+                const target = plainData.find(m => m.name === this.state.current.name);
+                this.state.score -= 5; this.updateUI();
+                const btn = document.getElementById('hint-btn');
+                this.spawnFloatingText("-5", btn, "text-orange-400");
+                if (target && target.el) {
+                    const layer = document.getElementById('layer-effects');
+                    for(let i=0; i<3; i++) {
+                        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        circle.setAttribute("cx", target.visX); circle.setAttribute("cy", target.visY);
+                        circle.setAttribute("r", 5); circle.setAttribute("fill", "none");
+                        circle.setAttribute("stroke", "#fbbf24"); circle.setAttribute("stroke-width", "2"); circle.style.opacity = "0.8";
+                        circle.animate([{ r: 5, opacity: 0.8, strokeWidth: "3px" }, { r: 40 + (i*15), opacity: 0, strokeWidth: "0px" }], { duration: 1500 + (i*300), easing: "cubic-bezier(0, 0, 0.2, 1)", iterations: 1 });
+                        layer.appendChild(circle); setTimeout(() => layer.removeChild(circle), 2500);
+                    }
+                }
+            },
+
+            // --- ULTRA MINIMALIST DIRECT LABELS ---
+            addLabel: function(plain) {
+                const layer = document.getElementById('layer-labels');
+                let displayName = plain.name.replace(" Ovası", "");
+                
+                // Menderes kısaltması
+                if (displayName === "Küçük Menderes") displayName = "K.Menderes";
+                else if (displayName === "Büyük Menderes") displayName = "B.Menderes";
+                
+                const x = plain.visX; 
+                let y = plain.visY - 9; // Varsayılan: Üst
+                
+                // --- Manuel Kaydırmalar (Taşova, Erbaa, Niksar vb.) ---
+                if (displayName === "Amasya") y = plain.visY + 8; // Alt
+                else if (displayName === "Taşova") y = plain.visY - 9; // Üst
+                else if (displayName === "Erbaa") y = plain.visY + 8; // Alt
+                else if (displayName === "Niksar") y = plain.visY - 9; // Üst
+                else if (displayName === "Merzifon") y = plain.visY - 9; // Üst
+                else if (displayName === "Suluova") y = plain.visY + 8; // Alt
+                else if (displayName === "Adapazarı") { y = plain.visY + 8; /* Alt */ }
+                else if (displayName === "Bolu-Düzce") { y = plain.visY - 9; /* Üst */ }
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("class", "map-label-text");
+                text.setAttribute("x", x); 
+                text.setAttribute("y", y);
+                text.textContent = displayName;
+                
+                layer.appendChild(text);
+            },
+            
+            spawnFloatingText: function(text, el, colorClass) {
+                 const container = document.body;
+                 const rect = el.getBoundingClientRect();
+                 const floatEl = document.createElement("div");
+                 floatEl.innerText = text; floatEl.className = `score-float ${colorClass}`;
+                 floatEl.style.left = rect.left + "px"; floatEl.style.top = rect.top + "px";
+                 container.appendChild(floatEl); setTimeout(() => floatEl.remove(), 1000);
+            },
+
+            showStatus: function(msg, classes) {
+                const el = document.getElementById('status-msg');
+                el.innerText = msg;
+                el.className = `absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all duration-300 transform translate-y-0 opacity-100 z-50 flex items-center gap-2 border ${classes}`;
+                setTimeout(() => { el.classList.replace('translate-y-0', 'translate-y-4'); el.classList.replace('opacity-100', 'opacity-0'); }, 1500);
+            },
+            
+            endGame: function() {
+                this.state.active = false;
+                clearInterval(this.state.timerInterval);
+                audioController.play('end');
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 0;
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('final-accuracy').innerText = accuracy + "%";
+                document.getElementById('final-correct').innerText = this.state.correct;
+                document.getElementById('final-wrong').innerText = this.state.wrong;
+                this.triggerConfetti();
+                document.getElementById('game-over-modal').classList.remove('hidden');
+                document.getElementById('game-over-modal').classList.add('flex');
+            },
+
+            triggerConfetti: function() {
+                var duration = 3 * 1000; var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+                function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+                var interval = setInterval(function() {
+                  var timeLeft = animationEnd - Date.now();
+                  if (timeLeft <= 0) { return clearInterval(interval); }
+                  var particleCount = 50 * (timeLeft / duration);
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            },
+
+            updateUI: function() {
+                document.getElementById('score').innerText = this.state.score;
+                document.getElementById('remaining').innerText = this.state.remaining.length;
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 100;
+                document.getElementById('accuracy').innerText = accuracy + "%";
+            }
+        };
+
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            if (menu.classList.contains('open')) {
+                menu.classList.remove('open'); menuIcon.classList.remove('hidden'); closeIcon.classList.add('hidden');
+            } else {
+                menu.classList.add('open'); menuIcon.classList.add('hidden'); closeIcon.classList.remove('hidden');
+            }
+        };
+
+        game.init();
+    </script>
+</body>
+</html>

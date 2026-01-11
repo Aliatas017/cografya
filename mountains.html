@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Dağları - Coğrafya Oyunları</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- MERGED PALETTE --- */
+            
+            /* Temel Renkler */
+            --bg-body: #020617;         
+            --bg-dots: #1e293b;         
+            
+            --panel-bg: #0f172a;        
+            --panel-border: #334155;    
+            
+            --text-primary: #f8fafc;    
+            --text-secondary: #94a3b8;  
+            --text-label: #ffffff;      
+            
+            /* Vurgu Renkleri */
+            --accent-primary: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);  
+            --accent-warn: #fbbf24;     
+            --accent-danger: #f87171;   
+            --accent-success: #4ade80;  
+
+            /* UI Detayları */
+            --glass-bg: rgba(15, 23, 42, 0.95); 
+            --border-width: 2px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --card-hover-bg: #1e293b;
+
+            /* Harita Özel */
+            --map-bg: #0f172a;          
+            --map-border: #1e293b;      
+            --map-grad-start: #1e293b;
+            --map-grad-end: #020617;
+
+            --province-fill: #1e293b;   
+            --province-stroke: #475569; 
+            --province-hover: #334155;
+
+            /* Marker Renkleri */
+            --marker-kirik: #f59e0b;    /* Turuncu - Horstlar */
+            --marker-volkanik: #ef4444; /* Kırmızı - Volkanlar */
+            --marker-kivrim: #c026d3;   /* MOR - Kıvrımlar */
+            
+            --marker-found-fill: #00ffff;
+            --marker-found-stroke: #ffffff;
+            
+            --city-text: #475569;       /* Şehir isimleri için renk */
+            --city-dot: #334155;
+        }
+
+        /* --- LIGHT MODE --- */
+        body.light-mode {
+            --bg-body: #f1f5f9;         
+            --bg-dots: #cbd5e1;         
+            
+            --panel-bg: #ffffff;        
+            --panel-border: #cbd5e1;    
+            
+            --text-primary: #0f172a;    
+            --text-secondary: #475569;  
+            --text-label: #0f172a;      
+
+            --accent-primary: #0369a1;
+            --accent-glow: rgba(3, 105, 161, 0.1);  
+            --accent-warn: #d97706;     
+            --accent-danger: #dc2626;   
+            --accent-success: #15803d;  
+
+            --glass-bg: rgba(255, 255, 255, 0.95); 
+            --card-hover-bg: #f8fafc;
+
+            --map-bg: #e2e8f0;          
+            --map-border: #94a3b8;      
+            --map-grad-start: #f8fafc;
+            --map-grad-end: #e2e8f0;
+
+            --province-fill: #ffffff;   
+            --province-stroke: #94a3b8; 
+            --province-hover: #f1f5f9;
+
+            --marker-kirik: #d97706;  
+            --marker-volkanik: #dc2626; 
+            --marker-kivrim: #9333ea;   
+            
+            --marker-found-fill: #0284c7; 
+            --marker-found-stroke: #f0f9ff;
+            
+            --city-text: #cbd5e1;
+            --city-dot: #e2e8f0;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text-primary);
+            overflow: hidden; 
+            user-select: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--glass-bg);
+            border-bottom: 2px solid var(--panel-border);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .auth-btn {
+            font-weight: 600; font-size: 0.8rem; padding: 0.4rem 0.8rem;
+            border-radius: 8px; transition: all 0.2s ease;
+        }
+        .btn-login { color: var(--text-primary); background: transparent; }
+        .btn-login:hover { background: var(--bg-dots); }
+        .btn-signup { background: var(--accent-primary); color: var(--bg-body); box-shadow: 0 4px 12px var(--accent-glow); }
+        .btn-signup:hover { transform: translateY(-1px); filter: brightness(1.1); }
+        
+        .theme-toggle-btn {
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            background: var(--panel-bg); border: 2px solid var(--panel-border); border-radius: 10px;
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
+        }
+        .theme-toggle-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+        .nav-link { font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); transition: color 0.2s; }
+        .nav-link:hover { color: var(--accent-primary); }
+
+        /* --- LAYOUT CONTAINER --- */
+        .game-layout {
+            display: flex;
+            flex-direction: row; /* Yan yana dizilim */
+            flex-grow: 1;
+            overflow: hidden;
+            height: calc(100vh - 64px - 40px); /* Header ve Footer payı */
+        }
+
+        /* --- LEFT: MAP --- */
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: var(--map-bg);
+            background-image: radial-gradient(circle at 50% 50%, var(--map-grad-start) 0%, var(--map-grad-end) 100%);
+            overflow: hidden;
+        }
+
+        /* --- RIGHT: SIDEBAR (STATS) --- */
+        .stats-sidebar {
+            width: 100px;
+            background: var(--panel-bg);
+            border-left: 2px solid var(--panel-border);
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1rem 0.5rem;
+            align-items: center;
+            z-index: 45;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            overflow-y: auto;
+        }
+
+        /* Stat Chips */
+        .stat-chip {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 0.5rem 0.25rem;
+            width: 100%;
+            border-radius: 8px;
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            transition: transform 0.2s;
+        }
+        .stat-chip:hover { transform: translateY(-2px); border-color: var(--text-secondary); }
+        .stat-label { font-size: 0.5rem; text-transform: uppercase; font-weight: 800; color: var(--text-secondary); margin-bottom: 0.1rem; letter-spacing: 0.05em; }
+        .stat-value { font-size: 1rem; font-weight: 900; line-height: 1; }
+        .stat-icon { width: 14px; height: 14px; margin-bottom: 4px; opacity: 0.8; }
+
+        /* --- QUESTION PANEL --- */
+        #question-panel {
+            background: var(--panel-bg);
+            border: 3px solid var(--accent-primary);
+            border-radius: var(--radius-lg);
+            padding: 0.6rem 1.2rem;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+            display: flex; align-items: center; justify-content: center; gap: 1rem;
+            width: fit-content; max-width: 80vw;
+            
+            position: absolute;
+            top: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 40;
+            transition: all 0.3s;
+        }
+        .text-content-wrapper { text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .target-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); font-weight: 700; }
+        .target-name { font-size: clamp(0.9rem, 2vw, 1.3rem); font-weight: 900; color: var(--accent-primary); white-space: nowrap; }
+
+        #hint-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white; font-weight: 700; font-size: 0.7rem; padding: 0.4rem 0.7rem;
+            border-radius: 6px; border: none; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+            display: flex; align-items: center; gap: 0.3rem; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #hint-btn:active { transform: scale(0.95); }
+
+        /* Harita SVG Elemanları */
+        .province-path { fill: var(--province-fill); stroke: var(--province-stroke); stroke-width: 0.5px; transition: all 0.2s ease; vector-effect: non-scaling-stroke; }
+        .province-path:hover { fill: var(--province-hover); stroke: var(--accent-primary); stroke-width: 2px; }
+        
+        .city-label { 
+            fill: var(--city-text); 
+            font-weight: 500; 
+            font-size: 5px; 
+            pointer-events: none; 
+            text-anchor: middle;
+            opacity: 0.7;
+        }
+        .city-dot { fill: var(--city-dot); pointer-events: none; r: 0.6; }
+
+        /* Markers */
+        .mountain-marker { cursor: pointer; transition: opacity 0.2s; }
+        .mountain-shape { stroke: var(--bg-body); stroke-width: 1.5px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), fill 0.3s; transform: scale(1.0); vector-effect: non-scaling-stroke; }
+        .mountain-marker:hover .mountain-shape { transform: scale(1.5); stroke: var(--bg-body); z-index: 50; }
+        .mountain-marker[data-type="kirik"] .mountain-shape { fill: var(--marker-kirik); } 
+        .mountain-marker[data-type="volkanik"] .mountain-shape { fill: var(--marker-volkanik); } 
+        .mountain-marker[data-type="kivrim"] .mountain-shape { fill: var(--marker-kivrim); } 
+        .mountain-marker.found .mountain-shape { fill: var(--marker-found-fill) !important; stroke: var(--marker-found-stroke); stroke-width: 2px; transform: scale(1.3); }
+
+        /* --- YENİ MİNİMAL ETİKET STİLİ --- */
+        .simple-label {
+            font-size: 6px;  /* Küçük, kibar font */
+            font-weight: 900;
+            fill: var(--text-primary); /* Tema rengine uygun */
+            text-anchor: middle;
+            pointer-events: none;
+            
+            /* HALO EFEKTİ: Arka plan rengiyle kalın bir kontur çizerek yazıyı her zeminde okunur kılar */
+            stroke: var(--map-bg); 
+            stroke-width: 2px;
+            paint-order: stroke; /* Stroke yazının arkasında kalsın */
+            stroke-linejoin: round;
+            
+            opacity: 0;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Legend */
+        .legend-box {
+            position: absolute; bottom: 20px; left: 20px;
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: var(--radius-md); padding: 0.6rem;
+            display: flex; flex-direction: column; gap: 0.4rem;
+            pointer-events: none; opacity: 0.9;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .legend-row { display: flex; gap: 0.5rem; align-items: center; }
+        .legend-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+        .legend-svg { width: 14px; height: 14px; overflow: visible; }
+
+        /* Helper Animations */
+        .pulse-text { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .score-float { position: absolute; font-weight: 900; font-size: 1.5rem; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 1000; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .loader { width: 48px; height: 48px; border: 5px solid var(--panel-border); border-bottom-color: var(--accent-primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Game Over Modal */
+        #game-over-modal { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        .modal-content { background: var(--panel-bg); border: 2px solid var(--panel-border); border-radius: var(--radius-lg); padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+        
+        /* Mobil Uyumluluk */
+        @media (max-width: 768px) {
+            .game-layout { flex-direction: column; }
+            .stats-sidebar { 
+                width: 100%; height: auto; flex-direction: row; justify-content: space-around; 
+                padding: 0.5rem; border-left: none; border-bottom: 2px solid var(--panel-border);
+                order: -1; 
+            }
+            .stat-chip { width: auto; min-width: 60px; padding: 0.3rem 0.5rem; }
+            .stat-icon { width: 14px; height: 14px; }
+            #question-panel { top: 10px; padding: 0.5rem 1rem; width: 90%; }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Loading Screen -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] bg-[var(--bg-body)] flex items-center justify-center">
+        <div class="text-center">
+            <span class="loader mb-6"></span>
+            <h2 class="text-xl font-bold tracking-tight" style="color:var(--text-primary)">Harita Yükleniyor...</h2>
+            <div id="error-container" class="hidden mt-4">
+                <p class="text-red-400 text-sm" id="error-msg">Hata oluştu.</p>
+                <button onclick="location.reload()" class="mt-2 text-xs border border-red-500 px-3 py-1 text-red-400 rounded">Yenile</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b-2 border-[var(--panel-border)]">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative bg-inherit">
+            
+            <!-- Sol: Logo & Nav -->
+            <div class="flex items-center gap-6">
+                <!-- Logo -->
+                <div class="flex items-center gap-2 select-none cursor-pointer group" onclick="location.href='index.html'">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-105" 
+                         style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary);">
+                        <i data-lucide="mountain" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-sm leading-tight tracking-tight" style="color: var(--text-primary)">DAĞLAR</h1>
+                        <p class="text-[9px] font-bold tracking-widest uppercase" style="color: var(--text-secondary)">Harita Oyunu</p>
+                    </div>
+                </div>
+
+                <!-- Desktop Nav -->
+                <nav class="hidden md:flex items-center gap-4 border-l border-[var(--panel-border)] pl-4 h-8">
+                    <a href="index.html" class="nav-link text-xs">Ana Sayfa</a>
+                    <span class="text-[10px] text-[var(--text-secondary)]">/</span>
+                    <span class="text-xs font-bold text-[var(--accent-primary)]">Oyun</span>
+                </nav>
+            </div>
+
+            <!-- Sağ: Kontroller -->
+            <div class="flex items-center gap-2">
+                <!-- Ses Kontrol -->
+                <button onclick="game.toggleAudio()" class="theme-toggle-btn" title="Sesi Aç/Kapat">
+                    <i data-lucide="volume-2" class="w-4 h-4 sound-on-icon"></i>
+                    <i data-lucide="volume-x" class="w-4 h-4 sound-off-icon hidden"></i>
+                </button>
+
+                <!-- Tema Değiştirici -->
+                <button onclick="game.toggleTheme()" class="theme-toggle-btn" title="Tema Değiştir">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark-icon"></i>
+                    <i data-lucide="moon" class="w-4 h-4 light-icon"></i>
+                </button>
+
+                <!-- Hamburger (Mobil) -->
+                <button onclick="toggleMobileMenu()" class="md:hidden theme-toggle-btn ml-1">
+                    <i data-lucide="menu" id="menu-icon" class="w-4 h-4"></i>
+                    <i data-lucide="x" id="close-icon" class="w-4 h-4 hidden"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobil Menü -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[var(--panel-bg)] border-b border-[var(--panel-border)] w-full absolute top-16 left-0 z-40 shadow-xl">
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm">Ana Sayfa</a>
+                <a href="#" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm">Hakkımızda</a>
+                <hr class="border-[var(--panel-border)] my-1">
+                <div class="flex gap-2">
+                    <button class="auth-btn btn-login w-full border border-[var(--panel-border)]">Giriş</button>
+                    <button class="auth-btn btn-signup w-full">Kayıt</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN LAYOUT: MAP + SIDEBAR -->
+    <main class="game-layout">
+        
+        <!-- Map Area (Left/Center) -->
+        <div id="map-container">
+            <!-- Soru Paneli (Üst Orta) -->
+            <div id="question-panel" class="opacity-0 pointer-events-none">
+                <div class="text-content-wrapper">
+                    <div class="target-label">HEDEF DAĞ</div>
+                    <div class="target-name pulse-text" id="target-name">...</div>
+                </div>
+                <button onclick="game.hint()" id="hint-btn">
+                    <i data-lucide="eye" class="w-3 h-3"></i> İPUCU
+                </button>
+            </div>
+
+            <!-- SVG Map -->
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="map-content">
+                    <g id="layer-provinces"></g>
+                    <g id="layer-cities"></g>
+                    <g id="layer-mountains"></g>
+                    <!-- Eski label çizgileri kaldırıldı -->
+                    <g id="layer-labels"></g> 
+                    <g id="layer-effects"></g>
+                </g>
+            </svg>
+
+            <!-- Legend (Sol Alt) -->
+            <div class="legend-box hidden sm:flex">
+                <div class="legend-row mb-1">
+                    <div class="text-[9px] text-[var(--text-secondary)] uppercase font-black tracking-widest border-b border-[var(--panel-border)] w-full pb-1">LEJANT</div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><rect x="-8" y="-6" width="16" height="12" rx="2" style="fill: var(--marker-kirik)" stroke="currentColor" stroke-width="1.5"></rect></svg>Kırık</div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M-9,6 L0,-9 L9,6 L6,6 L0,0 L-6,6 Z" style="fill: var(--marker-volkanik)" stroke="currentColor" stroke-width="1.5"></path></svg>Volkanik</div>
+                </div>
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M-10,5 Q-5,-10 0,0 T10,5" fill="none" stroke="var(--marker-kivrim)" stroke-width="3" stroke-linecap="round"></path></svg>Kıvrım</div>
+                </div>
+            </div>
+
+            <!-- Status Msg -->
+            <div id="status-msg" class="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2 border-2"></div>
+        </div>
+
+        <!-- Sidebar Stats (Right) -->
+        <aside class="stats-sidebar">
+            <div class="stat-chip">
+                <i data-lucide="timer" class="stat-icon" style="color: var(--accent-warn)"></i>
+                <span class="stat-label">Süre</span>
+                <span class="stat-value" style="color: var(--accent-warn)" id="timer">00:00</span>
+            </div>
+            <div class="stat-chip">
+                <i data-lucide="star" class="stat-icon" style="color: var(--accent-success)"></i>
+                <span class="stat-label">Puan</span>
+                <span class="stat-value" style="color: var(--accent-success)" id="score">0</span>
+            </div>
+            <div class="stat-chip">
+                <i data-lucide="target" class="stat-icon" style="color: var(--accent-primary)"></i>
+                <span class="stat-label">Doğruluk</span>
+                <span class="stat-value" style="color: var(--accent-primary)" id="accuracy">100%</span>
+            </div>
+            <div class="stat-chip">
+                <i data-lucide="map-pin" class="stat-icon" style="color: var(--text-secondary)"></i>
+                <span class="stat-label">Kalan</span>
+                <span class="stat-value" style="color: var(--text-secondary)" id="remaining">0</span>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-[var(--panel-border)] z-50 bg-[var(--panel-bg)] flex-shrink-0">
+        <div class="max-w-7xl mx-auto px-6 py-2 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div class="text-[10px] font-medium" style="color: var(--text-secondary)">
+                &copy; 2024 Coğrafya Oyunları.
+            </div>
+            <div class="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)]">
+                <i data-lucide="code-2" class="w-3 h-3" style="color: var(--accent-primary)"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-secondary)">
+                    Ali Ataş
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="modal-content w-full max-w-sm text-center">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2" style="background: var(--panel-bg); border-color: var(--accent-warn); color: var(--accent-warn)">
+                <i data-lucide="trophy" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--text-primary)">Tebrikler!</h2>
+            <p class="mb-6 text-xs" style="color: var(--text-secondary)">Tüm dağları buldunuz.</p>
+            
+            <div class="space-y-3 mb-6">
+                 <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Puan</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-success)" id="final-score">0</span>
+                    </div>
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Başarı</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-primary)" id="final-accuracy">0%</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border shadow-lg hover:-translate-y-0.5" style="background: var(--accent-primary); color: var(--bg-body); border-color: var(--accent-primary)">
+                Tekrar Oyna
+            </button>
+            <button onclick="location.href='index.html'" class="w-full mt-3 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border hover:bg-[var(--bg-dots)]" style="color: var(--text-secondary); border-color: var(--panel-border)">
+                Ana Sayfa
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json'; 
+        const FALLBACK_URL = 'https://raw.githubusercontent.com/alpers/Turkey-Maps-GeoJSON/master/tr-cities-utf8.json';
+
+        // DAĞ VERİLERİ (type: 'kirik' (horst), 'volkanik', 'kivrim')
+        const mountainData = [
+            // --- KIRIK DAĞLAR (EGE) ---
+            { name: "Kaz Dağları", lat: 39.75, lon: 26.85, type: "kirik" },
+            { name: "Madra Dağı", lat: 39.25, lon: 27.10, type: "kirik" },
+            { name: "Yunt Dağı", lat: 38.85, lon: 27.25, type: "kirik" },
+            { name: "Bozdağlar", lat: 38.35, lon: 28.10, type: "kirik" },
+            { name: "Aydın Dağları", lat: 37.95, lon: 28.15, type: "kirik" },
+            { name: "Menteşe Dağları", lat: 37.30, lon: 28.50, type: "kirik" },
+            // --- KIRIK DAĞLAR (AKDENİZ) ---
+            { name: "Amanos (Nur) Dağları", lat: 36.70, lon: 36.35, type: "kirik" },
+
+            // --- VOLKANİK DAĞLAR ---
+            { name: "Ağrı Dağı", lat: 39.70, lon: 44.30, type: "volkanik" },
+            { name: "Tendürek Dağı", lat: 39.35, lon: 43.85, type: "volkanik" },
+            { name: "Süphan Dağı", lat: 38.92, lon: 42.82, type: "volkanik" },
+            { name: "Nemrut Dağı", lat: 38.65, lon: 42.25, type: "volkanik" },
+            { name: "Erciyes Dağı", lat: 38.53, lon: 35.45, type: "volkanik" },
+            { name: "Hasan Dağı", lat: 38.12, lon: 34.20, type: "volkanik" },
+            { name: "Melendiz Dağı", lat: 38.25, lon: 34.45, type: "volkanik" },
+            { name: "Karacadağ (G.Doğu)", lat: 37.75, lon: 39.85, type: "volkanik" },
+            { name: "Karadağ", lat: 37.40, lon: 33.15, type: "volkanik" },
+            { name: "Kula Volkanları", lat: 38.55, lon: 28.50, type: "volkanik" },
+            { name: "Uludağ", lat: 40.07, lon: 29.22, type: "volkanik" }, 
+
+            // --- KIVRIM DAĞLARI (KUZEY) ---
+            { name: "Yıldız Dağları", lat: 41.75, lon: 27.50, type: "kivrim" },
+            { name: "Küre Dağları", lat: 41.70, lon: 33.50, type: "kivrim" },
+            { name: "Ilgaz Dağları", lat: 41.05, lon: 33.75, type: "kivrim" },
+            { name: "Köroğlu Dağları", lat: 40.65, lon: 32.50, type: "kivrim" },
+            { name: "Canik Dağları", lat: 40.85, lon: 36.50, type: "kivrim" },
+            { name: "Kaçkar Dağları", lat: 40.85, lon: 41.15, type: "kivrim" },
+            { name: "Giresun Dağları", lat: 40.50, lon: 38.40, type: "kivrim" },
+            
+            // --- KIVRIM DAĞLARI (TOROSLAR) ---
+            { name: "Bey Dağları", lat: 36.55, lon: 30.05, type: "kivrim" },
+            { name: "Sultan Dağları", lat: 38.35, lon: 31.30, type: "kivrim" },
+            { name: "Dedegöl Dağları", lat: 37.65, lon: 31.35, type: "kivrim" },
+            { name: "Bolkar Dağları", lat: 37.25, lon: 34.55, type: "kivrim" },
+            { name: "Aladağlar", lat: 37.80, lon: 35.15, type: "kivrim" },
+            { name: "Tahtalı Dağları", lat: 38.20, lon: 36.30, type: "kivrim" },
+            { name: "Binboğa Dağları", lat: 38.25, lon: 36.90, type: "kivrim" },
+            { name: "Cilo (Buzul) Dağı", lat: 37.50, lon: 43.90, type: "kivrim" },
+            { name: "Geyik Dağları", lat: 36.90, lon: 32.20, type: "kivrim" },
+
+            // --- KIVRIM DAĞLARI (İÇ/DOĞU) ---
+            { name: "Mercan (Munzur)", lat: 39.40, lon: 39.40, type: "kivrim" },
+            { name: "Palandöken", lat: 39.85, lon: 41.25, type: "kivrim" },
+            { name: "Allahuekber", lat: 40.50, lon: 42.50, type: "kivrim" },
+            { name: "Tecer Dağları", lat: 39.35, lon: 37.60, type: "kivrim" },
+            { name: "Sündiken Dağları", lat: 39.95, lon: 30.85, type: "kivrim" },
+            { name: "Elmadağ", lat: 39.85, lon: 33.10, type: "kivrim" }
+        ];
+
+        const audioController = {
+            ctx: null, isMuted: false,
+            init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            toggleMute: function() { this.isMuted = !this.isMuted; if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); return this.isMuted; },
+            play: function(type) {
+                if (this.isMuted) return;
+                if (!this.ctx) this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime; const gain = this.ctx.createGain(); gain.connect(this.ctx.destination);
+                if (type === 'success') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'error') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'click') {
+                    const osc = this.ctx.createOscillator(); osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05); osc.connect(gain); osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'end') {
+                    [523, 659, 783, 1046].forEach((freq, i) => {
+                        const o = this.ctx.createOscillator(); const g = this.ctx.createGain(); o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(this.ctx.destination);
+                        g.gain.setValueAtTime(0, now + i*0.1); g.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.1); g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 1.0); o.start(now + i*0.1); o.stop(now + i*0.1 + 1.0);
+                    });
+                }
+            }
+        };
+
+        const game = {
+            svg: null,
+            geoBounds: { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 },
+            viewBox: { w: 1000, h: 450 },
+            scale: 1, offsetX: 0, offsetY: 0,
+            
+            state: { 
+                score: 0, remaining: [], current: null, active: false, 
+                correct: 0, wrong: 0, isLightMode: false, secondsElapsed: 0, timerInterval: null
+            },
+            
+            init: function() {
+                const url = (MAP_DATA_URL === 'tr.json') ? FALLBACK_URL : MAP_DATA_URL;
+                this.fetchMapData(url);
+                lucide.createIcons();
+                this.updateThemeIcon();
+                document.body.addEventListener('click', () => audioController.init(), { once: true });
+            },
+
+            toggleTheme: function() {
+                this.state.isLightMode = !this.state.isLightMode;
+                document.body.classList.toggle('light-mode', this.state.isLightMode);
+                this.updateThemeIcon();
+            },
+            
+            toggleAudio: function() {
+                const isMuted = audioController.toggleMute();
+                document.querySelector('.sound-on-icon').classList.toggle('hidden', isMuted);
+                document.querySelector('.sound-off-icon').classList.toggle('hidden', !isMuted);
+            },
+
+            updateThemeIcon: function() {
+                document.querySelector('.light-icon').classList.toggle('hidden', this.state.isLightMode);
+                document.querySelector('.dark-icon').classList.toggle('hidden', !this.state.isLightMode);
+            },
+
+            fetchMapData: function(url) {
+                fetch(url)
+                    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+                    .then(data => {
+                        if (!data.features) throw new Error("Invalid JSON");
+                        this.loadMap(data);
+                        document.getElementById('loading-overlay').style.display = 'none';
+                        this.start();
+                    })
+                    .catch(err => {
+                        document.querySelector('.loader').style.display = 'none';
+                        document.getElementById('error-container').classList.remove('hidden');
+                    });
+            },
+
+            scanCoords: function(coords) {
+                if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number') {
+                    if (coords[0] < this.geoBounds.minLon) this.geoBounds.minLon = coords[0];
+                    if (coords[0] > this.geoBounds.maxLon) this.geoBounds.maxLon = coords[0];
+                    if (coords[1] < this.geoBounds.minLat) this.geoBounds.minLat = coords[1];
+                    if (coords[1] > this.geoBounds.maxLat) this.geoBounds.maxLat = coords[1];
+                } else if (Array.isArray(coords)) coords.forEach(c => this.scanCoords(c));
+            },
+
+            project: function(lon, lat) {
+                return { 
+                    x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
+                    y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
+                };
+            },
+
+            loadMap: function(data) {
+                this.svg = document.getElementById('game-map');
+                const layerProvinces = document.getElementById('layer-provinces');
+                const layerCities = document.getElementById('layer-cities');
+
+                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
+
+                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+                const padding = 20;
+                this.scale = Math.min((this.viewBox.w - 2 * padding) / lonSpan, (this.viewBox.h - 2 * padding) / latSpan);
+                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+                this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
+
+                data.features.forEach(f => {
+                    const d = this.createPathD(f.geometry);
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d);
+                    path.setAttribute("class", "province-path");
+                    layerProvinces.appendChild(path);
+                    
+                    const center = this.getCentroid(f.geometry);
+                    if(center) {
+                        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                        
+                        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        circle.setAttribute("cx", center.x); circle.setAttribute("cy", center.y);
+                        circle.setAttribute("r", 0.6); circle.setAttribute("class", "city-dot");
+                        
+                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                        text.setAttribute("x", center.x);
+                        text.setAttribute("y", center.y + 2.5); 
+                        text.setAttribute("class", "city-label");
+                        text.textContent = f.properties.name;
+
+                        g.appendChild(circle);
+                        g.appendChild(text);
+                        layerCities.appendChild(g);
+                    }
+                });
+                this.drawMountains();
+            },
+
+            createPathD: function(geometry) {
+                let d = "";
+                const polys = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        let ringD = "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]);
+                            ringD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                            if (i === 0) ringD += "L";
+                        });
+                        ringD += "Z ";
+                        d += ringD;
+                    });
+                });
+                return d;
+            },
+            
+            getCentroid: function(geometry) {
+                let sx = 0, sy = 0, count = 0;
+                const traverse = (c) => {
+                    if (typeof c[0] === 'number') { const p = this.project(c[0], c[1]); sx += p.x; sy += p.y; count++; } 
+                    else c.forEach(traverse);
+                };
+                traverse(geometry.coordinates);
+                return count ? { x: sx/count, y: sy/count } : null;
+            },
+
+            drawMountains: function() {
+                const layer = document.getElementById('layer-mountains');
+                layer.innerHTML = "";
+                this.state.remaining = [...mountainData];
+                
+                // Eski label temizliği
+                document.getElementById('layer-labels').innerHTML = "";
+
+                mountainData.forEach((mData, index) => {
+                    const p = this.project(mData.lon, mData.lat);
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "mountain-marker entrance-anim");
+                    g.style.animationDelay = `${index * 0.03}s`;
+                    g.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+                    g.setAttribute("data-name", mData.name);
+                    g.setAttribute("data-type", mData.type);
+                    g.onclick = (e) => { e.stopPropagation(); this.checkAnswer(mData, g); };
+
+                    const contentG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    contentG.setAttribute("class", "marker-content");
+                    g.appendChild(contentG);
+
+                    const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hitArea.setAttribute("class", "hit-area");
+                    hitArea.setAttribute("r", 10);
+                    hitArea.setAttribute("fill", "transparent");
+                    contentG.appendChild(hitArea);
+
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    shape.setAttribute("class", "mountain-shape");
+                    
+                    if (mData.type === 'kirik') {
+                        shape.setAttribute("d", "M-6,-4 L6,-4 L6,4 L-6,4 Z");
+                    } 
+                    else if (mData.type === 'volkanik') {
+                        shape.setAttribute("d", "M-6,5 L0,-7 L6,5 Z");
+                    } 
+                    else if (mData.type === 'kivrim') {
+                        shape.setAttribute("d", "M-8,2 Q-4,-6 0,2 T8,2");
+                        shape.setAttribute("fill", "none");
+                        shape.setAttribute("stroke-width", "4.5");
+                        shape.setAttribute("stroke-linecap", "round");
+                    }
+
+                    if(mData.type === 'kivrim') {
+                        shape.style.fill = "none";
+                        shape.style.stroke = "var(--marker-kivrim)";
+                    }
+
+                    contentG.appendChild(shape);
+                    layer.appendChild(g);
+                    mData.el = g;
+                });
+            },
+
+            start: function() {
+                this.state.active = true;
+                this.state.score = 0; this.state.correct = 0; this.state.wrong = 0; this.state.secondsElapsed = 0;
+                this.updateUI();
+                this.nextQuestion();
+                
+                const panel = document.getElementById('question-panel');
+                panel.style.opacity = 1; panel.style.pointerEvents = 'auto';
+                
+                this.startChronometer();
+            },
+
+            startChronometer: function() {
+                if(this.state.timerInterval) clearInterval(this.state.timerInterval);
+                const timerEl = document.getElementById('timer');
+                this.state.timerInterval = setInterval(() => {
+                    if (!this.state.active) return;
+                    this.state.secondsElapsed++;
+                    const m = Math.floor(this.state.secondsElapsed / 60).toString().padStart(2, '0');
+                    const s = (this.state.secondsElapsed % 60).toString().padStart(2, '0');
+                    timerEl.innerText = `${m}:${s}`;
+                }, 1000);
+            },
+
+            nextQuestion: function() {
+                if (this.state.remaining.length === 0) { this.endGame(); return; }
+                const idx = Math.floor(Math.random() * this.state.remaining.length);
+                this.state.current = this.state.remaining[idx];
+                document.getElementById('target-name').innerText = this.state.current.name;
+            },
+
+            checkAnswer: function(mountain, el) {
+                if (!this.state.active) return;
+                if (el.classList.contains('found')) return; 
+                
+                if (mountain.name === this.state.current.name) {
+                    audioController.play('success');
+                    el.classList.add('found');
+                    
+                    if(mountain.type === 'kivrim') {
+                        const shape = el.querySelector('.mountain-shape');
+                        shape.style.stroke = "var(--marker-found-stroke)";
+                        shape.style.fill = "var(--marker-found-fill)";
+                    }
+
+                    this.addLabel(mountain); // SADELEŞTİRİLMİŞ ETİKET EKLEME
+                    
+                    this.state.score += 10; this.state.correct++;
+                    this.spawnFloatingText("+10", el, "text-green-400");
+                    this.state.remaining = this.state.remaining.filter(m => m.name !== mountain.name);
+                    this.updateUI();
+                    this.showStatus("Doğru!", "bg-green-600/90 text-white border-green-500");
+                    setTimeout(() => this.nextQuestion(), 800);
+                } else {
+                    audioController.play('error');
+                    
+                    const content = el.querySelector('.marker-content');
+                    if (content) {
+                        content.classList.add('shake');
+                        setTimeout(() => content.classList.remove('shake'), 500);
+                    }
+
+                    this.state.score -= 5; this.state.wrong++;
+                    this.spawnFloatingText("-5", el, "text-red-400");
+                    this.updateUI();
+                    this.showStatus("Yanlış! Tekrar dene.", "bg-red-600/90 text-white border-red-500");
+                }
+            },
+
+            hint: function() {
+                if (!this.state.active || !this.state.current) return;
+                audioController.play('click');
+                const target = mountainData.find(m => m.name === this.state.current.name);
+                this.state.score -= 5; this.updateUI();
+                const btn = document.getElementById('hint-btn');
+                this.spawnFloatingText("-5", btn, "text-orange-400");
+
+                if (target && target.el) {
+                    const layer = document.getElementById('layer-effects');
+                    const p = this.project(target.lon, target.lat);
+                    for(let i=0; i<3; i++) {
+                        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                        circle.setAttribute("cx", p.x); circle.setAttribute("cy", p.y);
+                        circle.setAttribute("r", 5); circle.setAttribute("fill", "none");
+                        circle.setAttribute("stroke", "#fbbf24"); circle.setAttribute("stroke-width", "2");
+                        circle.style.opacity = "0.8";
+                        circle.animate([{ r: 5, opacity: 0.8, strokeWidth: "3px" }, { r: 40 + (i*15), opacity: 0, strokeWidth: "0px" }], { duration: 1500 + (i*300), easing: "cubic-bezier(0, 0, 0.2, 1)", iterations: 1 });
+                        layer.appendChild(circle);
+                        setTimeout(() => layer.removeChild(circle), 2500);
+                    }
+                }
+            },
+
+            // --- YENİ BASİTLEŞTİRİLMİŞ LABEL FONKSİYONU ---
+            addLabel: function(mountain) {
+                const layer = document.getElementById('layer-labels');
+                const p = this.project(mountain.lon, mountain.lat);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                
+                let labelX = p.x;
+                let labelY = p.y + 8; // Varsayılan: Dağın altı
+
+                // --- ÇAKIŞMA ÖNLEME (Manuel Ayarlar) ---
+                
+                // Tahtalı ve Binboğa yan yana olduğu için birini alta, birini üste alıyoruz.
+                if (mountain.name === "Tahtalı Dağları") {
+                    // Varsayılan (alt) kalabilir veya hafif sola kaydırılabilir
+                     labelY = p.y + 8; 
+                } 
+                else if (mountain.name === "Binboğa Dağları") {
+                    // Bunu dağın üzerine alalım
+                    labelY = p.y - 8; 
+                }
+                // Melendiz ve Hasan Dağı Çakışması
+                else if (mountain.name === "Melendiz Dağı") {
+                    labelY = p.y - 8; // Üste al (Daha kuzeyde)
+                }
+                else if (mountain.name === "Hasan Dağı") {
+                    labelY = p.y + 8; // Alta al (Daha güneyde)
+                }
+
+                text.setAttribute("x", labelX);
+                text.setAttribute("y", labelY); 
+                text.textContent = mountain.name;
+                text.setAttribute("class", "simple-label");
+
+                layer.appendChild(text);
+            },
+            
+            spawnFloatingText: function(text, el, colorClass) {
+                 const container = document.body;
+                 const rect = el.getBoundingClientRect();
+                 const floatEl = document.createElement("div");
+                 floatEl.innerText = text; floatEl.className = `score-float ${colorClass}`;
+                 floatEl.style.left = rect.left + "px"; floatEl.style.top = rect.top + "px";
+                 container.appendChild(floatEl); setTimeout(() => floatEl.remove(), 1000);
+            },
+
+            showStatus: function(msg, classes) {
+                const el = document.getElementById('status-msg');
+                el.innerText = msg;
+                el.className = `absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all duration-300 transform translate-y-0 opacity-100 z-50 flex items-center gap-2 border-2 ${classes}`;
+                setTimeout(() => { el.classList.replace('translate-y-0', 'translate-y-4'); el.classList.replace('opacity-100', 'opacity-0'); }, 1500);
+            },
+            
+            endGame: function() {
+                this.state.active = false;
+                clearInterval(this.state.timerInterval);
+                audioController.play('end');
+                
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 0;
+                
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('final-accuracy').innerText = accuracy + "%";
+                
+                this.triggerConfetti();
+                document.getElementById('game-over-modal').classList.remove('hidden');
+                document.getElementById('game-over-modal').classList.add('flex');
+            },
+
+            triggerConfetti: function() {
+                var duration = 3 * 1000;
+                var animationEnd = Date.now() + duration;
+                var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+                function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+                var interval = setInterval(function() {
+                  var timeLeft = animationEnd - Date.now();
+                  if (timeLeft <= 0) { return clearInterval(interval); }
+                  var particleCount = 50 * (timeLeft / duration);
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+                  confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+                }, 250);
+            },
+
+            updateUI: function() {
+                document.getElementById('score').innerText = this.state.score;
+                document.getElementById('remaining').innerText = this.state.remaining.length;
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 100;
+                document.getElementById('accuracy').innerText = accuracy + "%";
+            }
+        };
+
+        // GÜNCELLENMİŞ MENÜ FONKSİYONU
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+
+            // 'hidden' sınıfını aç/kapat (toggle et)
+            menu.classList.toggle('hidden');
+
+            // Menünün GÖRÜNÜR olup olmadığına bak (hidden sınıfı YOKSA görünürdür)
+            const isMenuOpen = !menu.classList.contains('hidden');
+
+            if (isMenuOpen) {
+                // Menü açıksa: Menü ikonunu gizle, Çarpı ikonunu göster
+                menuIcon.classList.add('hidden');
+                closeIcon.classList.remove('hidden');
+            } else {
+                // Menü kapalıysa: Menü ikonunu göster, Çarpı ikonunu gizle
+                menuIcon.classList.remove('hidden');
+                closeIcon.classList.add('hidden');
+            }
+        };
+
+        game.init();
+    </script>
+</body>
+</html>

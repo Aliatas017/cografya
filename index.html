@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coğrafya Oyunları - Profesyonel Arayüz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Font: Plus Jakarta Sans (Modern UI Standardı) -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- MEVCUT RENK PALETİ (HEADER/FOOTER KORUNDU) --- */
+            /* Dark Mode Varsayılan */
+            --bg-body: #0f172a;         
+            --bg-dots: #1e293b;         
+            
+            --panel-bg: rgba(30, 41, 59, 0.4); /* Daha şeffaf */       
+            --panel-border: rgba(148, 163, 184, 0.08);    
+            
+            --text-primary: #f8fafc;    
+            --text-secondary: #94a3b8;  
+            --text-muted: #64748b;
+
+            --accent-primary: #0ea5e9;  
+            --accent-secondary: #6366f1;
+            
+            --glass-bg: rgba(15, 23, 42, 0.85); 
+            
+            --radius-md: 20px;
+            --radius-lg: 32px;
+        }
+
+        /* Light Mode */
+        body.light-mode {
+            --bg-body: #f8fafc;         
+            --bg-dots: #e2e8f0;         
+            
+            --panel-bg: rgba(255, 255, 255, 0.6);        
+            --panel-border: rgba(148, 163, 184, 0.15);    
+            
+            --text-primary: #0f172a;    
+            --text-secondary: #475569; 
+            --text-muted: #94a3b8;
+
+            --accent-primary: #0284c7;  
+            --accent-secondary: #4f46e5;
+
+            --glass-bg: rgba(255, 255, 255, 0.9); 
+        }
+
+        body { 
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+            background-color: var(--bg-body);
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(99, 102, 241, 0.08), transparent 25%), 
+                radial-gradient(circle at 85% 30%, rgba(14, 165, 233, 0.08), transparent 25%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER & FOOTER (DOKUNULMADI) --- */
+        header, footer {
+            background-color: var(--glass-bg);
+            border-bottom: 1px solid var(--panel-border);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+            z-index: 50;
+        }
+        footer { border-top: 1px solid var(--panel-border); border-bottom: none; }
+
+        /* --- YENİ PROFESYONEL KART TASARIMI --- */
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 1.25rem;
+            width: 100%;
+        }
+
+        .pro-card {
+            position: relative;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-md);
+            padding: 1.75rem;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            backdrop-filter: blur(10px);
+            /* group: card;  <-- BU SATIR SİLİNDİ, CSS'TE GEÇERSİZDİR */
+        }
+
+        /* Hover Effect: Minimalist Lift & Glow */
+        .pro-card:hover {
+            transform: translateY(-4px);
+            background: linear-gradient(145deg, var(--panel-bg), rgba(14, 165, 233, 0.05));
+            border-color: rgba(14, 165, 233, 0.3);
+            box-shadow: 0 20px 40px -20px rgba(0,0,0,0.4);
+        }
+
+        /* İkon Kutusu */
+        .icon-surface {
+            width: 56px;
+            height: 56px;
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            transition: all 0.4s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hover'da İkon Efekti */
+        .pro-card:hover .icon-surface {
+            background: var(--accent-primary);
+            color: white;
+            border-color: transparent;
+            transform: scale(1.05) rotate(-3deg);
+            box-shadow: 0 10px 20px -5px rgba(14, 165, 233, 0.4);
+        }
+
+        .card-content {
+            z-index: 2;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
+        }
+
+        .card-desc {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* "Play" Action Button (Gizli, Hoverda Çıkar) */
+        .play-action {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-primary);
+            opacity: 0;
+            transform: scale(0.8);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 3;
+        }
+        
+        .pro-card:hover .play-action {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Dekoratif Arkaplan Işığı */
+        .card-glow {
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, var(--accent-primary) 0%, transparent 70%);
+            opacity: 0;
+            filter: blur(40px);
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .pro-card:hover .card-glow { opacity: 0.15; }
+
+
+        /* --- YENİ FİLTRE & ARAMA ALANI --- */
+        .controls-area {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 100px; /* Hap şeklinde */
+            padding: 0.5rem;
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 20px -10px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.6rem 1.25rem;
+            border-radius: 99px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid transparent;
+        }
+        
+        .filter-tab:hover {
+            color: var(--text-primary);
+            background: rgba(255,255,255,0.05);
+        }
+
+        .filter-tab.active {
+            background: var(--bg-body);
+            color: var(--text-primary);
+            border-color: var(--panel-border);
+            box-shadow: 0 4px 12px -2px rgba(0,0,0,0.1);
+        }
+
+        .search-wrapper {
+            background: transparent;
+            border-left: 1px solid var(--panel-border);
+            padding-left: 1rem;
+            margin-left: 0.5rem;
+            display: flex;
+            align-items: center;
+            width: 200px;
+            transition: width 0.3s ease;
+        }
+        .search-wrapper:focus-within { width: 300px; }
+
+        .search-input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            width: 100%;
+            padding: 0.5rem;
+        }
+        .search-input::placeholder { color: var(--text-muted); }
+
+        /* --- MODAL (GENİŞLETİLMİŞ & SCROLLSUZ) --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.8); /* Daha koyu backdrop */
+            backdrop-filter: blur(12px);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        .modal-content {
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            border-radius: var(--radius-lg);
+            /* Grid için genişlik arttırıldı */
+            width: 95%;
+            max-width: 900px; 
+            padding: 2.5rem;
+            transform: scale(0.95) translateY(20px);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
+            max-height: 95vh;
+            overflow: visible; /* Scroll yok */
+        }
+        .modal-backdrop.open .modal-content { transform: scale(1) translateY(0); }
+
+        /* Modal Grid Sistemi (3 Sütun - Scroll'u engeller) */
+        .modal-grid-layout {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        @media (min-width: 640px) { .modal-grid-layout { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 900px) { .modal-grid-layout { grid-template-columns: repeat(3, 1fr); } }
+
+        .option-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .option-card:hover {
+            border-color: var(--accent-primary);
+            background: rgba(14, 165, 233, 0.05);
+            transform: translateY(-2px);
+        }
+        
+        .option-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            background: var(--bg-body);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            border: 1px solid var(--panel-border);
+            transition: all 0.2s;
+        }
+        .option-card:hover .option-icon {
+            background: var(--accent-primary);
+            color: white;
+            border-color: transparent;
+        }
+
+        .option-text {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        /* --- ANIMATIONS --- */
+        @keyframes flowIn {
+            0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+            100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .flow-anim { animation: flowIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; }
+
+        /* Mobil Uyumlu Controls */
+        @media (max-width: 768px) {
+            .controls-area {
+                border-radius: 20px;
+                padding: 1rem;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .search-wrapper {
+                border-left: none;
+                border-top: 1px solid var(--panel-border);
+                margin-left: 0;
+                margin-top: 0.5rem;
+                padding-left: 0;
+                padding-top: 0.5rem;
+                width: 100%;
+            }
+            .search-wrapper:focus-within { width: 100%; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- HEADER (ORİJİNAL - KORUNDU) -->
+    <header class="sticky top-0 w-full">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-10">
+                <div class="flex items-center gap-3 select-none cursor-pointer" onclick="window.location.reload()">
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] text-white shadow-lg shadow-blue-500/20">
+                        <i data-lucide="globe-2" class="w-6 h-6"></i>
+                    </div>
+                    <div class="hidden sm:block">
+                        <h1 class="font-bold text-lg leading-tight tracking-tight text-[var(--text-primary)]">COĞRAFYA</h1>
+                        <p class="text-[10px] font-bold tracking-[0.2em] uppercase text-[var(--text-secondary)]">Eğitim Platformu</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#" class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors">Hakkımızda</a>
+                    <a href="#" class="text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--accent-primary)] transition-colors">İletişim</a>
+                </nav>
+            </div>
+            <div class="flex items-center gap-4">
+                <button onclick="toggleTheme()" class="w-10 h-10 rounded-xl flex items-center justify-center text-[var(--text-secondary)] hover:bg-[var(--panel-bg)] hover:text-[var(--accent-primary)] transition-all">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark-icon"></i>
+                    <i data-lucide="moon" class="w-5 h-5 light-icon"></i>
+                </button>
+                <div class="hidden md:flex items-center gap-3">
+                    <button class="px-4 py-2 text-sm font-semibold text-[var(--text-primary)] hover:bg-[var(--panel-bg)] rounded-xl transition-all">Giriş</button>
+                    <button class="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-secondary)] rounded-xl hover:opacity-90 transition-all shadow-lg shadow-blue-500/25">Kayıt Ol</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="flex-grow container mx-auto px-4 md:px-6 py-12 flex flex-col items-center">
+        
+        <!-- YENİ CONTROLS ALANI (Filtre + Arama Birleşik) -->
+        <div class="w-full max-w-4xl mb-16 flex justify-center">
+            <div class="controls-area">
+                <div id="category-filters" class="flex gap-1 overflow-x-auto no-scrollbar">
+                    <!-- Filters JS -->
+                </div>
+                <div class="search-wrapper">
+                    <i data-lucide="search" class="w-4 h-4 text-[var(--text-secondary)] mr-2"></i>
+                    <input type="text" placeholder="Harita ara..." class="search-input" oninput="handleSearch(this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- YENİ PROFESYONEL GRID -->
+        <div id="games-container" class="games-grid max-w-7xl">
+            <!-- Cards JS -->
+        </div>
+
+        <!-- Load More -->
+        <button id="load-more-btn" class="mt-12 px-8 py-3 rounded-full text-sm font-semibold text-[var(--text-secondary)] border border-[var(--panel-border)] hover:border-[var(--accent-primary)] hover:text-[var(--text-primary)] transition-all hidden" onclick="loadMore()">
+            Daha Fazla Göster
+        </button>
+        
+        <div id="no-results" class="hidden flex-col items-center justify-center py-20 text-[var(--text-secondary)]">
+            <i data-lucide="search-x" class="w-12 h-12 opacity-30 mb-4"></i>
+            <p class="font-medium">Sonuç bulunamadı.</p>
+        </div>
+
+    </main>
+
+    <!-- FOOTER (ORİJİNAL - KORUNDU) -->
+    <footer class="mt-auto">
+        <div class="max-w-7xl mx-auto px-6 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="text-sm font-medium text-[var(--text-secondary)]">
+                &copy; 2024 Coğrafya Oyunları. Tüm hakları saklıdır.
+            </div>
+            <div class="flex items-center gap-2 px-4 py-2 rounded-full border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">Sistem Aktif</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL (GENİŞ GRID - SCROLL YOK) -->
+    <div id="selection-modal" class="modal-backdrop" onclick="closeModal(event)">
+        <div class="modal-content">
+            <div class="flex justify-between items-start mb-6 border-b border-[var(--panel-border)] pb-6">
+                <div>
+                    <h2 id="modal-title" class="text-3xl font-bold text-[var(--text-primary)] mb-1">Kategori</h2>
+                    <p class="text-[var(--text-secondary)]">İncelemek istediğiniz haritayı seçin.</p>
+                </div>
+                <button onclick="closeModal(null, true)" class="w-10 h-10 rounded-full flex items-center justify-center bg-[var(--panel-bg)] hover:bg-[var(--accent-primary)] hover:text-white text-[var(--text-secondary)] transition-all">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <!-- GENİŞ GRID ALANI -->
+            <div id="modal-options" class="modal-grid-layout">
+                <!-- Seçenekler JS ile buraya gelecek -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        const categories = [
+            { id: 'all', name: 'Tümü' },
+            { id: 'yersekilleri', name: 'Yerşekilleri' },
+            { id: 'su', name: 'Su Kaynakları' },
+            { id: 'beseri', name: 'Beşeri' },
+            { id: 'ekonomi', name: 'Ekonomi' }
+        ];
+
+        const baseGames = [
+            // GRUP: OVALAR
+            { 
+                title: "Ovalar", 
+                cat: "yersekilleri", 
+                icon: "layers", 
+                desc: "Tektonik, Karstik ve Delta ovaları.",
+                isGroup: true,
+                subGames: [
+                    { title: "Tektonik Ovalar", link: "tektonikovalar.html", icon: "activity" },
+                    { title: "Karstik Ovalar", link: "karstikovalar.html", icon: "mountain-snow" },
+                    { title: "Delta Ovaları", link: "deltaovalari.html", icon: "sprout" }
+                ]
+            },
+            // GRUP: GÖLLER (Çoklu seçenek - Grid'de yayılacak)
+            { 
+                title: "Göller", 
+                cat: "su", 
+                icon: "droplets", 
+                desc: "Oluşumlarına göre Türkiye'nin gölleri.",
+                isGroup: true,
+                subGames: [
+                    { title: "Tektonik Göller", link: "tektonikgoller.html", icon: "activity" },
+                    { title: "Volkanik Göller", link: "volkanikgoller.html", icon: "flame" },
+                    { title: "Karstik Göller", link: "karstikgoller.html", icon: "mountain" },
+                    { title: "Heyelan Set", link: "heyelansetgoller.html", icon: "land-plot" },
+                    { title: "Alüvyal Set", link: "aluvyalsetgoller.html", icon: "waves" },
+                    { title: "Kıyı Set", link: "kiyisetgoller.html", icon: "anchor" },
+                    { title: "Volkanik Set", link: "volkaniksetgoller.html", icon: "mountain-snow" }
+                ]
+            },
+            
+            // TEKİL KARTLAR
+            { title: "Platolar", cat: "yersekilleri", icon: "map", desc: "Türkiye'nin önemli platoları.", link: "platolar.html" },
+            { title: "Dağlar", cat: "yersekilleri", icon: "mountain", desc: "Sıradağlar ve volkanik dağlar.", link: "mountains.html" },
+            { title: "Buzullaşma", cat: "yersekilleri", icon: "snowflake", desc: "Buzullaşan alanlar.", link: "buzullasma.html" },
+            { title: "Mağaralar", cat: "yersekilleri", icon: "flashlight", desc: "Türkiye'nin gizemli mağaraları.", link: "magaralar.html" },
+            { title: "Şelaleler", cat: "su", icon: "zap", desc: "Türkiye'nin harika şelaleleri.", link: "selale.html" }
+        ];
+
+        let allGames = [...baseGames];
+        
+        // --- STATE ---
+        let currentCategory = 'all';
+        let searchQuery = '';
+        let itemsToShow = 12; 
+        const ITEMS_PER_PAGE = 12;
+
+        const container = document.getElementById('games-container');
+        const filterContainer = document.getElementById('category-filters');
+        const noResults = document.getElementById('no-results');
+        const loadMoreBtn = document.getElementById('load-more-btn');
+        const modal = document.getElementById('selection-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalOptions = document.getElementById('modal-options');
+
+        function init() {
+            renderFilters();
+            renderGames();
+            lucide.createIcons();
+        }
+
+        // --- MODAL ---
+        function openGroupModal(gameTitle, subGames) {
+            modalTitle.textContent = gameTitle;
+            modalOptions.innerHTML = ''; 
+
+            subGames.forEach((sub, idx) => {
+                const link = document.createElement('a');
+                link.href = sub.link;
+                // Yeni "Option Card" yapısı
+                link.className = 'option-card flow-anim';
+                link.style.animationDelay = `${idx * 0.05}s`;
+                
+                link.innerHTML = `
+                    <div class="option-icon">
+                        <i data-lucide="${sub.icon || 'chevron-right'}" class="w-5 h-5"></i>
+                    </div>
+                    <span class="option-text">${sub.title}</span>
+                `;
+                modalOptions.appendChild(link);
+            });
+
+            lucide.createIcons();
+            modal.classList.add('open');
+        }
+
+        function closeModal(e, force = false) {
+            if (force || e.target === modal) {
+                modal.classList.remove('open');
+            }
+        }
+
+        // --- RENDER ---
+        function renderFilters() {
+            filterContainer.innerHTML = categories.map(cat => `
+                <div 
+                    class="filter-tab ${cat.id === currentCategory ? 'active' : ''}" 
+                    onclick="setCategory('${cat.id}')">
+                    ${cat.name}
+                </div>
+            `).join('');
+        }
+
+        function getFilteredGames() {
+            return allGames.filter(game => {
+                const matchesCat = currentCategory === 'all' || game.cat === currentCategory;
+                const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                      game.desc.toLowerCase().includes(searchQuery.toLowerCase());
+                return matchesCat && matchesSearch;
+            });
+        }
+
+        function renderGames(append = false) {
+            const filtered = getFilteredGames();
+            
+            if (!append) container.innerHTML = '';
+
+            if (filtered.length === 0) {
+                noResults.classList.remove('hidden');
+                noResults.classList.add('flex');
+                loadMoreBtn.classList.add('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+                noResults.classList.remove('flex');
+            }
+
+            const visibleGames = filtered.slice(0, itemsToShow);
+            const gamesToRender = append ? visibleGames.slice(itemsToShow - ITEMS_PER_PAGE) : visibleGames;
+
+            gamesToRender.forEach((game, index) => {
+                const card = document.createElement(game.isGroup ? 'div' : 'a');
+                
+                if (!game.isGroup) {
+                    card.href = game.link;
+                    if (game.link === "#") {
+                        card.onclick = (e) => { e.preventDefault(); alert("Bu oyun yakında eklenecek!"); };
+                    }
+                } else {
+                    card.onclick = () => openGroupModal(game.title, game.subGames);
+                }
+                
+                card.className = 'pro-card flow-anim';
+                card.style.animationDelay = `${(index % ITEMS_PER_PAGE) * 80}ms`;
+
+                card.innerHTML = `
+                    <div class="card-glow"></div>
+                    <div class="flex justify-between items-start z-10">
+                        <div class="icon-surface">
+                            <i data-lucide="${game.icon}" class="w-7 h-7"></i>
+                        </div>
+                        ${game.isGroup ? '<div class="px-3 py-1 bg-[var(--panel-border)] rounded-full text-[10px] font-bold tracking-wide uppercase text-[var(--text-secondary)]">Koleksiyon</div>' : ''}
+                    </div>
+                    
+                    <div class="card-content mt-2">
+                        <h3 class="card-title">${game.title}</h3>
+                        <p class="card-desc">${game.desc}</p>
+                    </div>
+
+                    <div class="play-action">
+                        <i data-lucide="${game.isGroup ? 'layers' : 'play'}" class="w-5 h-5 fill-current"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            if (itemsToShow >= filtered.length) {
+                loadMoreBtn.classList.add('hidden');
+            } else {
+                loadMoreBtn.classList.remove('hidden');
+            }
+
+            lucide.createIcons();
+        }
+
+        // --- HANDLERS ---
+        window.setCategory = (id) => {
+            currentCategory = id;
+            itemsToShow = ITEMS_PER_PAGE; 
+            renderFilters();
+            renderGames(false);
+        };
+
+        window.handleSearch = (val) => {
+            searchQuery = val;
+            itemsToShow = ITEMS_PER_PAGE; 
+            renderGames(false);
+        };
+
+        window.loadMore = () => {
+            itemsToShow += ITEMS_PER_PAGE;
+            renderGames(true);
+        };
+
+        // --- THEME ---
+        let isLightMode = false;
+        function toggleTheme() {
+            isLightMode = !isLightMode;
+            document.body.classList.toggle('light-mode', isLightMode);
+            
+            const lightIcons = document.querySelectorAll('.light-icon');
+            const darkIcons = document.querySelectorAll('.dark-icon');
+            
+            if (isLightMode) {
+                lightIcons.forEach(i => i.classList.add('hidden'));
+                darkIcons.forEach(i => i.classList.remove('hidden'));
+            } else {
+                lightIcons.forEach(i => i.classList.remove('hidden'));
+                darkIcons.forEach(i => i.classList.add('hidden'));
+            }
+        }
+
+        window.onload = init;
+
+    </script>
+</body>
+</html>
