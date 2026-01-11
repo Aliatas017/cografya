@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* --- BLUE THEME PALETTE --- */
+            /* --- MERGED PALETTE --- */
             --bg-body: #020617;         
             --bg-dots: #1e293b;         
             --panel-bg: #0f172a;        
@@ -40,9 +40,6 @@
             --province-hover: #334155;
 
             /* MARKER RENKLERİ (BÖLGELERE GÖRE) */
-            --region-marmara: #10b981;     /* Zümrüt Yeşili */
-            --region-icanadolu: #facc15;   /* Sarı */
-            --region-akdeniz: #ff3d00;     /* Neon Turuncu */
             --region-doguanadolu: #d946ef; /* Fuşya */
             
             --marker-found-fill: #00e5ff; /* Cyan */
@@ -74,10 +71,7 @@
             --province-hover: #f1f5f9;
             
             /* Light Mode Colors */
-            --region-marmara: #059669;
-            --region-icanadolu: #eab308;   
-            --region-akdeniz: #dd2c00;
-            --region-doguanadolu: #c026d3;
+            --region-doguanadolu: #9333ea;
             
             --marker-found-fill: #00b8d4; 
             --marker-found-stroke: #f0f9ff;
@@ -184,67 +178,25 @@
         .city-label { fill: var(--city-text); font-weight: 500; font-size: 6px; pointer-events: none; }
         .city-dot { fill: var(--city-dot); pointer-events: none; }
 
-        /* --- MARKER ANIMATIONS & STYLES --- */
+        /* MARKERS */
+        .game-marker { cursor: pointer; transition: opacity 0.2s; }
+        .marker-content { transform-origin: center; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         
-        @keyframes spinAround {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .game-marker { 
-            cursor: pointer; 
-            /* Hit area container stays static to prevent jitter */
-        }
-        
-        .marker-visual-group {
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
-            /* ÖNEMLİ DÜZELTME: Transform origin'i 0,0 yaparak kaymayı engelliyoruz */
-            transform-origin: 0px 0px; 
-        }
-
         .marker-shape {
             stroke: var(--bg-body); 
-            stroke-width: 1px;
-            transform-origin: center;
-            /* Sürekli dönme animasyonu */
-            animation: spinAround 8s linear infinite; 
-            filter: drop-shadow(0 4px 3px rgba(0,0,0,0.3));
-            transform-box: fill-box; /* Dönme merkezini şeklin ortası yapar */
+            stroke-width: 1.5px;
+            transition: fill 0.3s, transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+            transform: scale(1.0);
+            vector-effect: non-scaling-stroke;
         }
         
-        .marker-shadow {
-            fill: rgba(0,0,0,0.3);
-            transform-origin: center;
-            transition: all 0.3s ease;
-        }
-
-        /* --- HOVER ETKİLERİ (TITREME VE UÇMA YOK) --- */
+        .game-marker:hover .marker-shape { transform: scale(1.8); stroke: var(--text-primary); z-index: 50; }
         
-        /* 1. Dönme dursun */
-        .game-marker:hover .marker-shape {
-            animation-play-state: paused;
-        }
-        
-        /* 2. Yerinde Büyüme (Sadece scale, translate yok) */
-        .game-marker:hover .marker-visual-group {
-            transform: scale(1.25);
-            z-index: 50; 
-        }
-        
-        /* 3. Gölge silikleşsin */
-        .game-marker:hover .marker-shadow {
-            opacity: 0.1;
-        }
-        
-        /* Bulunduğunda */
         .game-marker.found .marker-shape { 
             fill: var(--marker-found-fill) !important; 
             stroke: var(--marker-found-stroke); 
-            stroke-width: 2px;
-            animation: none; /* Dönme durur */
-        }
-        .game-marker.found .marker-visual-group {
-            transform: scale(1.0); /* Normal boyuta döner */
+            stroke-width: 1.5px;
+            transform: scale(1.3);
         }
 
         /* --- ULTRA MINIMALIST DIRECT LABELS --- */
@@ -268,28 +220,17 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- CLEAN MINIMAL LEGEND --- */
+        /* Legend */
         .legend-box {
-            position: absolute; bottom: 25px; left: 25px;
-            display: flex; flex-direction: column; gap: 0.8rem;
-            pointer-events: none; z-index: 30;
+            position: absolute; bottom: 20px; left: 20px;
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: 12px; padding: 0.8rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            pointer-events: none; opacity: 0.8;
         }
-        
-        .legend-item { 
-            display: flex; align-items: center; gap: 0.6rem; 
-            font-size: 0.75rem; font-weight: 700; 
-            color: var(--text-secondary); 
-            text-transform: uppercase; 
-            letter-spacing: 0.05em;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        }
-        
-        .legend-hex {
-            width: 14px; height: 16px;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            background: currentColor;
-            box-shadow: 0 0 10px currentColor;
-        }
+        .legend-row { display: flex; gap: 1rem; }
+        .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+        .legend-svg { width: 14px; height: 14px; overflow: visible; }
 
         /* Mobile Menu */
         #mobile-menu {
@@ -349,9 +290,6 @@
             z-index: 20;
         }
 
-        .info-theme-marmara { --theme-color: #10b981; --theme-bg: rgba(16, 185, 129, 0.1); }
-        .info-theme-icanadolu { --theme-color: #facc15; --theme-bg: rgba(250, 204, 21, 0.1); }
-        .info-theme-akdeniz { --theme-color: #ff3d00; --theme-bg: rgba(255, 61, 0, 0.1); }
         .info-theme-doguanadolu { --theme-color: #d946ef; --theme-bg: rgba(217, 70, 239, 0.1); }
 
         .continue-btn {
@@ -406,7 +344,7 @@
                 <div class="flex items-center gap-2 select-none cursor-pointer group" onclick="location.href='index.html'">
                     <div class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-105" 
                          style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary);">
-                        <i data-lucide="mountain" class="w-5 h-5"></i>
+                        <i data-lucide="mountain-snow" class="w-5 h-5"></i>
                     </div>
                     <div>
                         <h1 class="font-black text-sm leading-tight tracking-tight" style="color: var(--text-primary)">VOLKANİK SET GÖLLERİ</h1>
@@ -488,26 +426,11 @@
                 </g>
             </svg>
 
-            <!-- YENİ MINIMAL & CLEAN LEGEND -->
             <div class="legend-box hidden sm:flex">
-                <div class="legend-item">
-                    <div class="legend-hex" style="color: var(--region-marmara)"></div>
-                    <span>Marmara</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-hex" style="color: var(--region-icanadolu)"></div>
-                    <span>İç Anadolu</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-hex" style="color: var(--region-akdeniz)"></div>
-                    <span>Akdeniz</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-hex" style="color: var(--region-doguanadolu)"></div>
-                    <span>Doğu Anadolu</span>
+                <div class="legend-row">
+                    <div class="legend-item"><svg class="legend-svg" viewBox="-10 -10 20 20"><path d="M 0,-6 L 6,0 L 0,6 L -6,0 Z" style="fill: var(--region-doguanadolu)" stroke="currentColor" stroke-width="1.5"></path></svg>Doğu Anadolu</div>
                 </div>
             </div>
-            
             <div id="status-msg" class="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2 border-2"></div>
         </div>
     </main>
@@ -517,7 +440,7 @@
         <div id="info-card" class="rounded-3xl p-0 max-w-sm w-full relative">
              <div class="card-glow-strip"></div>
              <div class="absolute -right-8 -top-8 opacity-10 rotate-12 pointer-events-none" style="color: var(--theme-color)">
-                 <i data-lucide="waves" class="w-40 h-40"></i>
+                 <i data-lucide="mountain-snow" class="w-40 h-40"></i>
              </div>
              <div class="relative px-6 pt-10 pb-2 text-center z-10">
                  <div class="relative inline-flex items-center justify-center w-16 h-16 mb-4">
@@ -617,7 +540,7 @@
             },
             {
                 name: "Haçlı Gölü", lat: 39.18, lon: 42.30, region: "doguanadolu",
-                desc: "Bulanık Ovası'nın güneyinde yer alır. Sığ bir göldür ve suları tatlıdır."
+                desc: "Bulanık Ovası'nın güneyinde yer alır. Sığ bir göldür. Diğer volkanik set gölleri gibi Van Gölü havzasındadır."
             }
         ];
 
@@ -676,11 +599,7 @@
                 lucide.createIcons();
                 this.updateThemeIcon();
                 document.body.addEventListener('click', () => audioController.init(), { once: true });
-                
-                // Adjust responsive layout on resize
-                window.addEventListener('resize', () => {
-                    if(this.svg) this.loadMap(this.mapData); // Re-calculate map scale/offset
-                });
+                window.addEventListener('resize', () => { if(this.svg) this.loadMap(this.mapData); });
             },
 
             toggleTheme: function() {
@@ -700,7 +619,7 @@
 
             fetchMapData: function(url) {
                 fetch(url).then(r => r.json()).then(data => {
-                    this.mapData = data; // Store data for resize redraws
+                    this.mapData = data;
                     this.loadMap(data);
                     document.getElementById('loading-overlay').style.display = 'none';
                     this.start();
@@ -731,20 +650,17 @@
                 const layerProvinces = document.getElementById('layer-provinces');
                 const layerCities = document.getElementById('layer-cities');
                 
-                // Clear previous layers
                 layerProvinces.innerHTML = '';
                 layerCities.innerHTML = '';
                 document.getElementById('layer-markers').innerHTML = '';
                 document.getElementById('layer-labels').innerHTML = '';
                 document.getElementById('layer-lines').innerHTML = '';
 
-                // Reset bounds
                 this.geoBounds = { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 };
 
                 data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
                 lakeData.forEach(d => this.scanCoords([[d.lon, d.lat]]));
                 
-                // --- RESPONSIVE ADJUSTMENTS ---
                 const isMobile = window.innerWidth < 768;
                 const topReserved = isMobile ? 80 : 60; 
                 const bottomReserved = isMobile ? 60 : 40; 
@@ -864,16 +780,11 @@
                     shape.setAttribute("class", "marker-shape");
                     
                     let fillColor = "#ffffff";
-                    if (wData.region === "marmara") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-marmara');
-                    else if (wData.region === "icanadolu") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-icanadolu');
-                    else if (wData.region === "akdeniz") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-akdeniz');
-                    else if (wData.region === "doguanadolu") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-doguanadolu');
+                    if (wData.region === "doguanadolu") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-doguanadolu');
                     
                     if (!fillColor || fillColor.trim() === '') {
-                         if (wData.region === "marmara") fillColor = "#10b981";
-                         else if (wData.region === "icanadolu") fillColor = "#facc15";
-                         else if (wData.region === "akdeniz") fillColor = "#ff3d00";
-                         else if (wData.region === "doguanadolu") fillColor = "#d946ef";
+                         // Fallback
+                         if (wData.region === "doguanadolu") fillColor = "#d946ef";
                     }
                     shape.style.fill = fillColor; 
                     
@@ -939,11 +850,6 @@
                 audioController.play('achievement');
                 
                 const card = document.getElementById('info-card');
-                
-                // Başarı durumunda buton metnini "Devam Et" yap
-                const btnSpan = document.querySelector('#info-card .continue-btn span');
-                if(btnSpan) btnSpan.innerText = "Devam Et";
-
                 for(let i=0; i<15; i++) {
                     const dot = document.createElement('div');
                     dot.className = 'sparkle-effect';
@@ -959,10 +865,7 @@
                     dot.style.setProperty('--end-x', `${endX}px`);
                     dot.style.setProperty('--end-y', `${endY}px`);
                     
-                    if (lake.region === "marmara") dot.style.background = "#10b981"; 
-                    else if (lake.region === "icanadolu") dot.style.background = "#facc15";
-                    else if (lake.region === "akdeniz") dot.style.background = "#ff3d00";
-                    else if (lake.region === "doguanadolu") dot.style.background = "#d946ef";
+                    if (lake.region === "doguanadolu") dot.style.background = "#d946ef";
                     
                     dot.style.left = "50%"; dot.style.top = "50%";
                     dot.style.animation = `sparkle-float ${1 + Math.random()}s ease-out forwards`;
@@ -974,15 +877,12 @@
                 document.getElementById('info-title').innerText = lake.name;
                 
                 let regionLabel = "BÖLGE";
-                if(lake.region === "marmara") regionLabel = "MARMARA";
-                else if(lake.region === "icanadolu") regionLabel = "İÇ ANADOLU";
-                else if(lake.region === "akdeniz") regionLabel = "AKDENİZ";
-                else if(lake.region === "doguanadolu") regionLabel = "DOĞU ANADOLU";
+                if(lake.region === "doguanadolu") regionLabel = "DOĞU ANADOLU";
                 
                 document.getElementById('info-type').innerText = regionLabel;
                 document.getElementById('info-desc').innerText = lake.desc;
                 
-                card.classList.remove('info-theme-marmara', 'info-theme-icanadolu', 'info-theme-akdeniz', 'info-theme-doguanadolu');
+                card.classList.remove('info-theme-doguanadolu');
                 if(lake.region) card.classList.add('info-theme-' + lake.region);
                 document.getElementById('info-modal').classList.add('active');
             },
@@ -1018,10 +918,7 @@
                 // Kartı doldur
                 document.getElementById('info-title').innerText = target.name;
                 let regionLabel = "BÖLGE";
-                if(target.region === "marmara") regionLabel = "MARMARA";
-                else if(target.region === "icanadolu") regionLabel = "İÇ ANADOLU";
-                else if(target.region === "akdeniz") regionLabel = "AKDENİZ";
-                else if(target.region === "doguanadolu") regionLabel = "DOĞU ANADOLU";
+                if(target.region === "doguanadolu") regionLabel = "DOĞU ANADOLU";
                 document.getElementById('info-type').innerText = regionLabel;
                 document.getElementById('info-desc').innerText = target.desc;
 
@@ -1031,7 +928,7 @@
 
                 // Tema Rengi
                 const card = document.getElementById('info-card');
-                card.classList.remove('info-theme-marmara', 'info-theme-icanadolu', 'info-theme-akdeniz', 'info-theme-doguanadolu');
+                card.classList.remove('info-theme-doguanadolu');
                 if(target.region) card.classList.add('info-theme-' + target.region);
 
                 // Modalı aç
@@ -1040,13 +937,12 @@
 
             addLabel: function(lake) {
                 const layer = document.getElementById('layer-labels');
-                let displayName = lake.name.replace(" Gölü", "").replace(" (Kuş)", "");
+                let displayName = lake.name.replace(" Gölü", "");
                 
                 const x = lake.visX; 
-                let y = lake.visY - 12; // Varsayılan: Üst
+                let y = lake.visY - 9;
                 
-                // --- ÖZEL KONUMLANDIRMA ---
-                // Nazik Gölü etiketini markerin hemen altına, çok az boşlukla yerleştir
+                // Nazik Gölü etiketini markerin altına al
                 if (displayName === "Nazik") {
                     y = lake.visY + 14; 
                 }

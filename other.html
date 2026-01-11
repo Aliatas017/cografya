@@ -1,535 +1,392 @@
 <!DOCTYPE html>
-<html lang="tr" class="dark">
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPSS Coğrafya: Tarım Analiz Paneli</title>
-    
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    
+    <title>Tarım Analiz - Coğrafya Oyunları</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        display: ['Outfit', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    },
-                    colors: {
-                        bg: {
-                            main: '#0B0F19', // Deepest Navy
-                            card: '#111827', // Gray 900
-                            surface: '#1F2937', // Gray 800
-                        },
-                        accent: {
-                            primary: '#6366f1', // Indigo
-                            success: '#10b981', // Emerald
-                            danger: '#ef4444', // Red
-                            warning: '#f59e0b', // Amber
-                        }
-                    },
-                    backgroundImage: {
-                        'grid-pattern': "linear-gradient(to right, #1f2937 1px, transparent 1px), linear-gradient(to bottom, #1f2937 1px, transparent 1px)",
-                    }
-                }
-            }
-        }
-    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
     <style>
+        :root {
+            /* --- MERGED PALETTE --- */
+            --bg-body: #020617;
+            --bg-dots: #1e293b;
+            --panel-bg: #0f172a;
+            --panel-border: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-label: #ffffff;
+
+            --accent-primary: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --accent-warn: #fbbf24;
+            --accent-danger: #f87171;
+            --accent-success: #4ade80;
+
+            --glass-bg: rgba(15, 23, 42, 0.85);
+            --border-width: 2px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+
+            /* Harita Özel */
+            --map-bg: #0f172a;
+            --map-border: #1e293b;
+            --map-grad-start: #1e293b;
+            --map-grad-end: #020617;
+
+            --province-fill: #1e293b;
+            --province-stroke: #475569;
+            --province-hover: #334155;
+
+            /* Game Specific Status Colors */
+            --status-correct: #059669; /* Emerald 600 */
+            --status-wrong: #dc2626;   /* Red 600 */
+            --status-near: #d97706;    /* Amber 600 */
+            --status-rank: #2563eb;    /* Blue 600 */
+        }
+
+        /* LIGHT MODE */
+        body.light-mode {
+            --bg-body: #f1f5f9;
+            --bg-dots: #cbd5e1;
+            --panel-bg: #ffffff;
+            --panel-border: #cbd5e1;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --accent-primary: #0369a1;
+            --accent-glow: rgba(3, 105, 161, 0.1);
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --map-bg: #e2e8f0;
+            --map-grad-start: #f8fafc;
+            --map-grad-end: #e2e8f0;
+            --province-fill: #ffffff;
+            --province-stroke: #94a3b8;
+            --province-hover: #f1f5f9;
+        }
+
         body {
-            background-color: #0B0F19;
-            color: #e5e7eb;
-            -webkit-font-smoothing: antialiased;
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text-primary);
+            overflow: hidden;
+            user-select: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Modern Card Style */
-        .pro-card {
-            background: rgba(17, 24, 39, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: all 0.3s ease;
-        }
+        /* --- HEADER & STATS BAR --- */
+        header { background-color: var(--glass-bg); border-bottom: 2px solid var(--panel-border); backdrop-filter: blur(12px); z-index: 50; flex-shrink: 0; }
 
-        .pro-card:hover {
-            border-color: rgba(99, 102, 241, 0.3);
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        .theme-toggle-btn {
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            background: var(--panel-bg); border: 2px solid var(--panel-border); border-radius: 10px;
+            color: var(--text-secondary); cursor: pointer; transition: all 0.2s;
         }
+        .theme-toggle-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
 
-        /* Map Container Technical Background */
+        .stats-bar {
+            display: flex; gap: 1rem; padding: 0.5rem 1rem;
+            background: var(--panel-bg); border-bottom: 1px solid var(--panel-border);
+            justify-content: center; align-items: center;
+        }
+        .stat-chip {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.25rem 0.75rem; border-radius: 8px;
+            background: var(--bg-body); border: 1px solid var(--panel-border);
+            min-width: 70px;
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+        .stat-value { font-size: 1rem; font-weight: 800; line-height: 1.1; }
+
+        /* --- MAP & OVERLAYS --- */
         #map-container {
-            background-color: #0f172a;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.5);
+            flex-grow: 1; position: relative;
+            background-color: var(--map-bg);
+            background-image: radial-gradient(circle at 50% 50%, var(--map-grad-start) 0%, var(--map-grad-end) 100%);
+            overflow: hidden; width: 100%; height: 100%;
         }
 
-        /* Map Paths */
+        /* Overlay Question Panel */
+        #question-panel {
+            position: absolute; top: 2%; left: 50%; transform: translateX(-50%);
+            background: var(--glass-bg); border: 2px solid var(--accent-primary);
+            border-radius: var(--radius-lg); padding: 0.6rem 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+            width: fit-content; max-width: 90%; z-index: 40;
+            backdrop-filter: blur(8px);
+        }
+        .text-content-wrapper { text-align: center; display: flex; flex-direction: column; align-items: center; }
+        .target-label { font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); font-weight: 700; }
+        .target-name { font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--accent-primary); white-space: nowrap; }
+
+        /* Status Badge for State Control */
+        .status-badge {
+            display: flex; align-items: center; gap: 0.3rem;
+            font-size: 0.6rem; font-weight: 700; color: var(--accent-danger);
+            background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3);
+            padding: 0.2rem 0.5rem; border-radius: 99px; margin-top: 0.2rem;
+        }
+
+        /* Hint Button */
+        #hint-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white; font-weight: 700; font-size: 0.75rem; padding: 0.5rem 0.8rem;
+            border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+            display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #hint-btn:active { transform: scale(0.95); }
+
+        /* Province Paths */
         .province-path {
-            fill: #1e293b;
-            stroke: rgba(255, 255, 255, 0.1);
-            stroke-width: 0.5px;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            vector-effect: non-scaling-stroke;
+            fill: var(--province-fill); stroke: var(--province-stroke); stroke-width: 0.5px;
+            transition: all 0.2s ease; vector-effect: non-scaling-stroke; cursor: pointer;
         }
+        .province-path:hover { fill: var(--province-hover); stroke: var(--accent-primary); stroke-width: 2px; z-index: 10; }
 
-        .province-path:hover {
-            fill: #374151;
-            stroke: rgba(99, 102, 241, 0.8);
-            stroke-width: 1.5px;
-            filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.5));
-            z-index: 10;
-        }
-
-        /* Status Colors */
-        .province-path.city-correct { fill: #059669 !important; stroke: #34d399; fill-opacity: 0.9; }
-        .province-path.city-wrong { fill: #dc2626 !important; stroke: #fca5a5; fill-opacity: 0.9; }
-        .province-path.city-near { fill: #d97706 !important; stroke: #fbbf24; fill-opacity: 0.9; }
-        .province-path.city-rank { fill: #2563eb !important; stroke: #60a5fa; fill-opacity: 0.8; }
+        /* Game States on Map */
+        .province-path.city-correct { fill: var(--status-correct) !important; stroke: #86efac; fill-opacity: 0.9; }
+        .province-path.city-wrong { fill: var(--status-wrong) !important; stroke: #fca5a5; fill-opacity: 0.9; }
+        .province-path.city-near { fill: var(--status-near) !important; stroke: #fcd34d; fill-opacity: 0.9; }
+        .province-path.city-rank { fill: var(--status-rank) !important; stroke: #93c5fd; fill-opacity: 0.8; }
         
-        .province-path.city-hint {
-            fill: #d97706 !important;
-            animation: pulse 1.5s infinite;
+        /* Info/Result Modal */
+        #info-modal {
+            position: fixed; inset: 0; z-index: 70;
+            background-color: rgba(2, 6, 23, 0.8); backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
+        #info-modal.active { opacity: 1; pointer-events: auto; }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
+        #info-card {
+            background: var(--panel-bg); border: 2px solid var(--panel-border);
+            border-radius: var(--radius-lg); padding: 1.5rem;
+            max-width: 400px; width: 90%;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
+        #info-modal.active #info-card { transform: scale(1); }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        .rank-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0.5rem; border-radius: 8px; margin-bottom: 0.4rem;
+            background: var(--bg-body); border: 1px solid var(--panel-border);
+        }
+        .rank-row.top-rank { border-color: var(--accent-primary); background: rgba(56, 189, 248, 0.05); }
+
+        /* Loader */
+        .loader { width: 48px; height: 48px; border: 5px solid var(--panel-border); border-bottom-color: var(--accent-primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Status Msg */
+        #status-msg {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+            opacity: 0; transition: all 0.3s; z-index: 60;
+            padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 700; font-size: 0.9rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); pointer-events: none;
+        }
+        #status-msg.active { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Mobile Menu */
+        #mobile-menu {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0; opacity: 0; overflow: hidden;
+        }
+        #mobile-menu.open { max-height: 400px; opacity: 1; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden">
+<body class="h-screen flex flex-col">
 
-    <!-- Top Navigation / Header -->
-    <header class="h-16 border-b border-gray-800 bg-[#0B0F19]/90 backdrop-blur z-20 flex items-center justify-between px-6">
-        <div class="flex items-center gap-3">
-            <div class="w-8 h-8 rounded bg-indigo-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(99,102,241,0.5)]">
-                <i class="fas fa-layer-group"></i>
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] bg-[var(--bg-body)] flex items-center justify-center">
+        <div class="text-center">
+            <span class="loader mb-6"></span>
+            <h2 class="text-xl font-bold tracking-tight" style="color:var(--text-primary)">Harita Yükleniyor...</h2>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b-2 border-[var(--panel-border)]">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative bg-inherit">
+            <div class="flex items-center gap-6">
+                <!-- Logo -->
+                <div class="flex items-center gap-2 select-none cursor-pointer group" onclick="location.href='index.html'">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-105"
+                         style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary);">
+                        <i data-lucide="sprout" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-sm leading-tight tracking-tight" style="color: var(--text-primary)">TARIM</h1>
+                        <p class="text-[9px] font-bold tracking-widest uppercase" style="color: var(--text-secondary)">Analiz Simülasyonu</p>
+                    </div>
+                </div>
+                <!-- Nav -->
+                <nav class="hidden md:flex items-center gap-4 border-l border-[var(--panel-border)] pl-4 h-8">
+                    <a href="index.html" class="nav-link text-xs">Ana Sayfa</a>
+                    <span class="text-[10px] text-[var(--text-secondary)]">/</span>
+                    <span class="text-xs font-bold text-[var(--accent-primary)]">Oyun</span>
+                </nav>
             </div>
-            <div>
-                <h1 class="font-display font-bold text-lg tracking-tight text-white leading-none">Coğrafya<span class="text-indigo-500">Pro</span></h1>
-                <p class="text-[10px] text-gray-400 font-mono tracking-wide">TÜİK VERİ ANALİZ SİMÜLASYONU</p>
+            <!-- Controls -->
+            <div class="flex items-center gap-2">
+                <button onclick="game.toggleTheme()" class="theme-toggle-btn">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark-icon"></i>
+                    <i data-lucide="moon" class="w-4 h-4 light-icon"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden theme-toggle-btn ml-1">
+                    <i data-lucide="menu" id="menu-icon" class="w-4 h-4"></i>
+                    <i data-lucide="x" id="close-icon" class="w-4 h-4 hidden"></i>
+                </button>
             </div>
         </div>
 
-        <!-- Score & Stats Pill -->
-        <div class="flex items-center gap-6 bg-gray-900/50 border border-gray-800 rounded-full px-5 py-1.5">
-            <div class="flex items-center gap-2">
-                <span class="text-[10px] font-bold text-gray-500 uppercase">Skor</span>
-                <span id="score-display" class="font-mono text-xl font-bold text-emerald-400">0</span>
-            </div>
-            <div class="w-px h-4 bg-gray-700"></div>
-            <div class="flex flex-col w-24">
-                <div class="flex justify-between text-[8px] text-gray-500 mb-0.5">
-                    <span>İLERLEME</span>
-                    <span id="progress-text">0%</span>
-                </div>
-                <div class="h-1 bg-gray-800 rounded-full overflow-hidden">
-                    <div id="progress-bar" class="h-full bg-indigo-500 w-0 transition-all duration-500"></div>
-                </div>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="md:hidden bg-[var(--panel-bg)] border-b border-[var(--panel-border)] w-full absolute top-16 left-0 z-40 shadow-xl">
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm">Ana Sayfa</a>
             </div>
         </div>
     </header>
 
-    <main class="flex-1 flex overflow-hidden">
+    <!-- Main Game Area -->
+    <main class="flex-grow flex flex-col relative overflow-hidden">
         
-        <!-- Left Sidebar: Control Panel -->
-        <aside class="w-80 border-r border-gray-800 bg-[#0B0F19] flex flex-col z-10 shadow-2xl">
-            <div class="flex-1 p-6 flex flex-col overflow-y-auto">
-                
-                <!-- Status Badge -->
-                <div class="mb-6 flex justify-between items-start">
-                    <div class="px-2 py-1 rounded border border-gray-700 bg-gray-900 text-[10px] font-mono text-gray-400">
-                        SESSION_ID: <span class="text-indigo-400">2024-TR</span>
+        <!-- Stats Bar -->
+        <div class="stats-bar z-10 shadow-sm shrink-0">
+            <div class="stat-chip">
+                <span class="stat-label">Puan</span>
+                <span class="stat-value" style="color: var(--accent-success)" id="score">0</span>
+            </div>
+            <div class="stat-chip" style="min-width: 100px;">
+                <span class="stat-label">İlerleme</span>
+                <div class="w-full h-1.5 bg-[var(--bg-dots)] rounded-full mt-1 overflow-hidden">
+                    <div id="progress-bar" class="h-full bg-[var(--accent-primary)] transition-all" style="width: 0%"></div>
+                </div>
+                <span class="text-[9px] font-bold mt-0.5" style="color: var(--text-secondary)" id="progress-text">0%</span>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map-container">
+
+            <!-- Question Panel (Overlay) -->
+            <div id="question-panel">
+                <div class="text-content-wrapper">
+                    <div class="target-label">HEDEF ÜRÜN</div>
+                    <div class="target-name pulse-text" id="product-name">...</div>
+                    <div id="state-badge" class="status-badge hidden">
+                        <i data-lucide="shield-alert" class="w-3 h-3"></i> Devlet Kontrolü
                     </div>
-                    <div id="state-control-badge" class="hidden px-2 py-1 rounded border border-rose-900/50 bg-rose-950/30 text-[10px] font-bold text-rose-400 flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
-                        DEVLET KONTROLÜ
-                    </div>
                 </div>
-
-                <!-- Product Display -->
-                <div class="mb-8">
-                    <div class="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-2">HEDEF ÜRÜN</div>
-                    <h2 id="product-name" class="font-display text-4xl font-bold text-white leading-tight mb-2 tracking-tight transition-all duration-300">
-                        Yükleniyor...
-                    </h2>
-                    <div class="h-0.5 w-12 bg-indigo-600 rounded"></div>
-                </div>
-
-                <!-- Question Box -->
-                <div class="bg-gray-900/50 border border-gray-800 rounded-xl p-4 mb-6 relative group hover:border-indigo-500/30 transition-colors">
-                    <div class="absolute -left-px top-4 bottom-4 w-0.5 bg-indigo-500 rounded-l"></div>
-                    <p class="text-sm text-gray-300 leading-relaxed font-light">
-                        Harita üzerinde bu ürünün <strong class="text-white font-semibold">üretim şampiyonu</strong> olan ili (1. sıra) tespit edin.
-                    </p>
-                </div>
-
-                <!-- Feedback Area -->
-                <div id="status-message" class="min-h-[40px] flex items-center justify-center text-xs font-medium text-center transition-all duration-300 opacity-0 mb-4 px-2 py-2 rounded-lg">
-                </div>
-
-                <!-- Next Button -->
-                <div class="mt-auto">
-                    <button id="next-btn" onclick="gameLogic.nextQuestion()" class="hidden w-full group relative overflow-hidden rounded-lg bg-indigo-600 p-px focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-offset-2 focus:ring-offset-gray-900">
-                        <div class="relative flex items-center justify-center gap-2 bg-gray-900 group-hover:bg-gray-800/80 transition-colors rounded-lg px-4 py-3">
-                            <span class="text-sm font-bold text-white">Sıradaki Analiz</span>
-                            <i class="fas fa-chevron-right text-xs text-indigo-400 group-hover:translate-x-1 transition-transform"></i>
-                        </div>
-                    </button>
-                </div>
+                <!-- Hint Button -->
+                <button onclick="gameLogic.showHint()" id="hint-btn">
+                    <i data-lucide="info" class="w-3 h-3"></i> BİLGİ
+                </button>
             </div>
 
-            <!-- Footer -->
-            <div class="p-4 border-t border-gray-800 text-[10px] text-gray-600 text-center font-mono">
-                DATA SOURCE: TÜİK AGRO-STATISTICS 2024
-            </div>
-        </aside>
+            <!-- Map SVG -->
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="map-content">
+                    <g id="layer-provinces"></g>
+                    <g id="layer-badges"></g>
+                </g>
+            </svg>
 
-        <!-- Right Area: Interactive Map -->
-        <section class="flex-1 relative bg-gray-950 flex flex-col">
-            
-            <!-- Map Container -->
-            <div id="map-container" class="flex-1 w-full h-full relative overflow-hidden">
-                <svg id="game-map" viewBox="0 0 1000 450" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" class="w-full h-full">
-                    <g id="map-content">
-                        <g id="layer-provinces"></g>
-                        <g id="layer-labels"></g>
-                        <g id="layer-badges"></g>
-                    </g>
-                </svg>
+            <!-- Status Message Toast -->
+            <div id="status-msg"></div>
 
-                <!-- Loading Overlay -->
-                <div id="loading-overlay" class="absolute inset-0 z-50 bg-[#0B0F19] flex flex-col items-center justify-center">
-                    <div class="w-12 h-12 border-2 border-gray-800 border-t-indigo-500 rounded-full animate-spin mb-4"></div>
-                    <div class="text-xs font-mono text-indigo-400 animate-pulse">SYSTEM INITIALIZING...</div>
-                </div>
-
-                <!-- Map Legend -->
-                <div class="absolute bottom-6 left-6 flex gap-2 pointer-events-none">
-                    <div class="px-3 py-1.5 rounded bg-gray-900/90 border border-gray-700 text-[10px] text-gray-300 font-mono flex items-center gap-2 shadow-lg">
-                        <div class="w-2 h-2 rounded-sm bg-emerald-500"></div> #1 ŞAMPİYON
-                    </div>
-                    <div class="px-3 py-1.5 rounded bg-gray-900/90 border border-gray-700 text-[10px] text-gray-300 font-mono flex items-center gap-2 shadow-lg">
-                        <div class="w-2 h-2 rounded-sm bg-blue-500"></div> TOP 5
-                    </div>
+            <!-- Legend -->
+            <div class="absolute bottom-5 left-5 pointer-events-none flex gap-2">
+                <div class="px-3 py-1.5 rounded-lg bg-[var(--panel-bg)] border border-[var(--panel-border)] text-[10px] font-bold text-[var(--text-secondary)] flex items-center gap-2 shadow-lg">
+                    <div class="w-2 h-2 rounded-sm" style="background: var(--status-correct)"></div> #1 Lider
                 </div>
             </div>
-
-            <!-- Modal Overlay (Centered & Modern) -->
-            <div id="info-modal" class="hidden absolute inset-0 z-40 flex items-center justify-center bg-[#0B0F19]/80 backdrop-blur-sm transition-opacity duration-300">
-                <div class="pro-card bg-gray-900 rounded-xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-300 modal-content border border-gray-700 shadow-2xl">
-                    
-                    <!-- Modal Header -->
-                    <div class="p-6 text-center border-b border-gray-800 relative bg-gradient-to-b from-gray-800/50 to-transparent">
-                        <div id="modal-icon-container" class="w-12 h-12 mx-auto rounded-lg flex items-center justify-center text-xl mb-3 shadow-lg">
-                            <!-- Icon -->
-                        </div>
-                        <h3 id="modal-title" class="font-display text-xl font-bold text-white tracking-tight"></h3>
-                        <div id="modal-city" class="text-sm font-medium text-gray-400 mt-1"></div>
-                    </div>
-
-                    <!-- Ranking List (Compact) -->
-                    <div class="p-4 bg-gray-950/50">
-                        <div class="flex items-center justify-between text-[10px] font-bold text-gray-500 uppercase mb-3 px-1">
-                            <span>LİDERLİK TABLOSU</span>
-                            <span>SIRA</span>
-                        </div>
-                        <div id="ranking-list" class="space-y-1.5">
-                            <!-- JS Generated -->
-                        </div>
-                    </div>
-
-                    <!-- Description -->
-                    <div class="p-4 text-xs text-gray-400 border-t border-gray-800 leading-relaxed bg-gray-900">
-                        <p id="modal-desc"></p>
-                    </div>
-
-                    <!-- Action -->
-                    <div class="p-4 pt-0 bg-gray-900">
-                        <button onclick="gameLogic.closeModal()" class="w-full py-2.5 rounded bg-white hover:bg-gray-100 text-gray-900 text-xs font-bold uppercase tracking-wider transition-colors">
-                            Devam Et
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-        </section>
+        </div>
     </main>
 
+    <!-- Info/Result Modal -->
+    <div id="info-modal">
+        <div id="info-card">
+            <div class="text-center mb-4">
+                <div id="modal-icon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg text-white font-bold text-xl"></div>
+                <h3 id="modal-title" class="text-xl font-black tracking-tight mb-1" style="color: var(--text-primary)">Başlık</h3>
+                <p id="modal-city" class="text-sm font-semibold" style="color: var(--text-secondary)">Şehir</p>
+            </div>
+            
+            <!-- Description -->
+            <div class="mb-4 p-3 rounded-lg bg-[var(--bg-dots)] border border-[var(--panel-border)] text-xs leading-relaxed" style="color: var(--text-secondary)" id="modal-desc">
+            </div>
+
+            <!-- Rankings (Only shown on result) -->
+            <div id="ranking-container" class="mb-5">
+                <div class="flex justify-between text-[9px] uppercase font-bold text-[var(--text-secondary)] mb-2 px-1">
+                    <span>Liderlik Tablosu</span>
+                    <span>Sıra</span>
+                </div>
+                <div id="ranking-list" class="space-y-1"></div>
+            </div>
+
+            <button onclick="gameLogic.closeModal()" class="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-wider text-white shadow-lg transition-transform active:scale-95" style="background: var(--accent-primary)">
+                Devam Et
+            </button>
+        </div>
+    </div>
+
     <script>
-        // --- VERİ SETİ ---
+        // --- DATA ---
         const products = [
-            {
-                id: "pamuk",
-                name: "Pamuk",
-                rankings: [
-                    { city: "Şanlıurfa", plate: "63" },
-                    { city: "Diyarbakır", plate: "21" },
-                    { city: "Aydın", plate: "09" },
-                    { city: "Hatay", plate: "31" },
-                    { city: "İzmir", plate: "35" }
-                ],
-                category: "Sanayi Bitkileri",
-                description: "GAP ile sulama imkanlarının artması Şanlıurfa'yı üretim merkezi yapmıştır. Tekstil sanayisinin hammaddesidir.",
-                isStateControlled: false
-            },
-            {
-                id: "bugday",
-                name: "Buğday",
-                rankings: [
-                    { city: "Konya", plate: "42" },
-                    { city: "Şanlıurfa", plate: "63" },
-                    { city: "Ankara", plate: "06" },
-                    { city: "Diyarbakır", plate: "21" },
-                    { city: "Yozgat", plate: "66" }
-                ],
-                category: "Tahıllar",
-                description: "Konya Ovası 'Tahıl Ambarı' olarak bilinir. Temel besin maddesidir ve kuraklığa dayanıklıdır.",
-                isStateControlled: false
-            },
-            {
-                id: "misir",
-                name: "Mısır",
-                rankings: [
-                    { city: "Konya", plate: "42" },
-                    { city: "Şanlıurfa", plate: "63" },
-                    { city: "Adana", plate: "01" },
-                    { city: "Mardin", plate: "47" },
-                    { city: "Karaman", plate: "70" }
-                ],
-                category: "Tahıllar",
-                description: "Sulama tekniklerinin gelişmesiyle (Mavi Tünel) Konya, Adana'yı geçerek liderliğe yükselmiştir.",
-                isStateControlled: false
-            },
-            {
-                id: "tutun",
-                name: "Tütün",
-                rankings: [
-                    { city: "Adıyaman", plate: "02" },
-                    { city: "Denizli", plate: "20" },
-                    { city: "Manisa", plate: "45" },
-                    { city: "Samsun", plate: "55" },
-                    { city: "Uşak", plate: "64" }
-                ],
-                category: "Sanayi Bitkileri",
-                description: "Kalite kontrolü amacıyla devlet denetimindedir. Adıyaman tütünü coğrafi işarete sahiptir.",
-                isStateControlled: true
-            },
-            {
-                id: "hashas",
-                name: "Haşhaş",
-                rankings: [
-                    { city: "Afyonkarahisar", plate: "03" },
-                    { city: "Konya", plate: "42" },
-                    { city: "Burdur", plate: "15" },
-                    { city: "Denizli", plate: "20" },
-                    { city: "Isparta", plate: "32" }
-                ],
-                category: "Sanayi Bitkileri",
-                description: "Alkaloid içeriği nedeniyle uyuşturucu yapımında kullanılabilir, bu yüzden sıkı devlet kontrolündedir.",
-                isStateControlled: true
-            },
-            {
-                id: "seker_pancari",
-                name: "Şeker Pancarı",
-                rankings: [
-                    { city: "Konya", plate: "42" },
-                    { city: "Yozgat", plate: "66" },
-                    { city: "Aksaray", plate: "68" },
-                    { city: "Kayseri", plate: "38" },
-                    { city: "Afyonkarahisar", plate: "03" }
-                ],
-                category: "Sanayi Bitkileri",
-                description: "Hasattan sonra çabuk işlenmesi gerekir, fabrikalar üretim alanlarına yakındır. Kota uygulanır.",
-                isStateControlled: true
-            },
-            {
-                id: "cay",
-                name: "Çay",
-                rankings: [
-                    { city: "Rize", plate: "53" },
-                    { city: "Trabzon", plate: "61" },
-                    { city: "Artvin", plate: "08" },
-                    { city: "Giresun", plate: "28" }, 
-                    { city: "Ordu", plate: "52" } 
-                ],
-                category: "Sanayi Bitkileri",
-                description: "Sadece Doğu Karadeniz'in mikroklima alanlarında yetişir. Yıkanmış, kireçsiz toprak sever.",
-                isStateControlled: true
-            },
-            {
-                id: "findik",
-                name: "Fındık",
-                rankings: [
-                    { city: "Ordu", plate: "52" },
-                    { city: "Samsun", plate: "55" },
-                    { city: "Sakarya", plate: "54" },
-                    { city: "Giresun", plate: "28" },
-                    { city: "Düzce", plate: "81" }
-                ],
-                category: "Meyveler",
-                description: "Türkiye dünya üretiminin %70'ini karşılar. Ordu ve Giresun en önemli merkezlerdir.",
-                isStateControlled: false
-            },
-            {
-                id: "pirinc",
-                name: "Pirinç (Çeltik)",
-                rankings: [
-                    { city: "Edirne", plate: "22" },
-                    { city: "Samsun", plate: "55" },
-                    { city: "Balıkesir", plate: "10" },
-                    { city: "Çanakkale", plate: "17" },
-                    { city: "Çorum", plate: "19" }
-                ],
-                category: "Tahıllar",
-                description: "Su içinde yetişir. Sıtma riski nedeniyle yerleşim yerlerine belirli mesafede devlet izniyle ekilir.",
-                isStateControlled: true
-            },
-            {
-                id: "zeytin",
-                name: "Zeytin",
-                rankings: [
-                    { city: "Aydın", plate: "09" },
-                    { city: "İzmir", plate: "35" },
-                    { city: "Muğla", plate: "48" },
-                    { city: "Bursa", plate: "16" },
-                    { city: "Manisa", plate: "45" }
-                ],
-                category: "Meyveler",
-                description: "Akdeniz ikliminin tanıtıcı bitkisidir. Aydın yağlık, Bursa (Gemlik) sofralık zeytinde öne çıkar.",
-                isStateControlled: false
-            },
-            {
-                id: "muz",
-                name: "Muz",
-                rankings: [
-                    { city: "Mersin", plate: "33" },
-                    { city: "Antalya", plate: "07" },
-                    { city: "Hatay", plate: "31" },
-                    { city: "Adana", plate: "01" },
-                    { city: "Muğla", plate: "48" }
-                ],
-                category: "Meyveler",
-                description: "Tropikal bir bitkidir. Mersin (Anamur) çevresindeki mikroklima alanlarında yetişir.",
-                isStateControlled: false
-            },
-            {
-                id: "kivi",
-                name: "Kivi",
-                rankings: [
-                    { city: "Yalova", plate: "77" },
-                    { city: "Bursa", plate: "16" },
-                    { city: "Ordu", plate: "52" },
-                    { city: "Sakarya", plate: "54" },
-                    { city: "Samsun", plate: "55" }
-                ],
-                category: "Meyveler",
-                description: "Nemli ortamları sever. Yalova ve çevresi üretimde lider konumdadır.",
-                isStateControlled: false
-            },
-            {
-                id: "kirmizi_mercimek",
-                name: "Kırmızı Mercimek",
-                rankings: [
-                    { city: "Şanlıurfa", plate: "63" },
-                    { city: "Diyarbakır", plate: "21" },
-                    { city: "Mardin", plate: "47" },
-                    { city: "Batman", plate: "72" },
-                    { city: "Gaziantep", plate: "27" }
-                ],
-                category: "Baklagiller",
-                description: "Kuraklığa çok dayanıklıdır. Güneydoğu Anadolu Bölgesi üretimin merkezidir.",
-                isStateControlled: false
-            },
-            {
-                id: "uzum",
-                name: "Üzüm",
-                rankings: [
-                    { city: "Manisa", plate: "45" },
-                    { city: "Denizli", plate: "20" },
-                    { city: "Mersin", plate: "33" },
-                    { city: "Nevşehir", plate: "50" },
-                    { city: "İzmir", plate: "35" }
-                ],
-                category: "Meyveler",
-                description: "-40°C'ye kadar dayanabilir, bu yüzden Türkiye'nin hemen her yerinde yetişir. Manisa kuru üzümde liderdir.",
-                isStateControlled: false
-            },
-            {
-                id: "elma",
-                name: "Elma",
-                rankings: [
-                    { city: "Isparta", plate: "32" },
-                    { city: "Karaman", plate: "70" },
-                    { city: "Niğde", plate: "51" },
-                    { city: "Antalya", plate: "07" },
-                    { city: "Kayseri", plate: "38" }
-                ],
-                category: "Meyveler",
-                description: "Üretimi en yaygın meyvelerden biridir. Isparta ve Karaman elmasıyla ünlüdür.",
-                isStateControlled: false
-            },
-            {
-                id: "aycicegi",
-                name: "Ayçiçeği",
-                rankings: [
-                    { city: "Edirne", plate: "22" },
-                    { city: "Tekirdağ", plate: "59" },
-                    { city: "Kırklareli", plate: "39" },
-                    { city: "Konya", plate: "42" },
-                    { city: "Adana", plate: "01" }
-                ],
-                category: "Yağ Bitkileri",
-                description: "Türkiye'nin bitkisel yağ ihtiyacının büyük kısmını karşılar. Trakya (Ergene Havzası) en yoğun ekim alanıdır.",
-                isStateControlled: false
-            }
+            { id: "pamuk", name: "Pamuk", rankings: [{city:"Şanlıurfa"},{city:"Diyarbakır"},{city:"Aydın"},{city:"Hatay"},{city:"İzmir"}], desc: "GAP ile sulama imkanlarının artması Şanlıurfa'yı üretim merkezi yapmıştır.", state: false },
+            { id: "bugday", name: "Buğday", rankings: [{city:"Konya"},{city:"Şanlıurfa"},{city:"Ankara"},{city:"Diyarbakır"},{city:"Yozgat"}], desc: "Konya Ovası 'Tahıl Ambarı' olarak bilinir.", state: false },
+            { id: "misir", name: "Mısır", rankings: [{city:"Konya"},{city:"Şanlıurfa"},{city:"Adana"},{city:"Mardin"},{city:"Karaman"}], desc: "Sulama tekniklerinin gelişmesiyle Konya, Adana'yı geçmiştir.", state: false },
+            { id: "tutun", name: "Tütün", rankings: [{city:"Adıyaman"},{city:"Denizli"},{city:"Manisa"},{city:"Samsun"},{city:"Uşak"}], desc: "Kalite kontrolü amacıyla devlet denetimindedir.", state: true },
+            { id: "hashas", name: "Haşhaş", rankings: [{city:"Afyonkarahisar"},{city:"Konya"},{city:"Burdur"},{city:"Denizli"},{city:"Isparta"}], desc: "Uyuşturucu yapımında kullanılabileceği için sıkı devlet kontrolündedir.", state: true },
+            { id: "seker", name: "Şeker Pancarı", rankings: [{city:"Konya"},{city:"Yozgat"},{city:"Aksaray"},{city:"Kayseri"},{city:"Afyonkarahisar"}], desc: "Hasattan sonra çabuk işlenmesi gerekir. Kota uygulanır.", state: true },
+            { id: "cay", name: "Çay", rankings: [{city:"Rize"},{city:"Trabzon"},{city:"Artvin"},{city:"Giresun"},{city:"Ordu"}], desc: "Sadece Doğu Karadeniz'in mikroklima alanlarında yetişir.", state: true },
+            { id: "findik", name: "Fındık", rankings: [{city:"Ordu"},{city:"Samsun"},{city:"Sakarya"},{city:"Giresun"},{city:"Düzce"}], desc: "Türkiye dünya üretiminin %70'ini karşılar.", state: false },
+            { id: "pirinc", name: "Pirinç", rankings: [{city:"Edirne"},{city:"Samsun"},{city:"Balıkesir"},{city:"Çanakkale"},{city:"Çorum"}], desc: "Sıtma riski nedeniyle devlet izniyle ekilir.", state: true },
+            { id: "zeytin", name: "Zeytin", rankings: [{city:"Aydın"},{city:"İzmir"},{city:"Muğla"},{city:"Bursa"},{city:"Manisa"}], desc: "Aydın yağlık, Bursa sofralık zeytinde öne çıkar.", state: false },
+            { id: "muz", name: "Muz", rankings: [{city:"Mersin"},{city:"Antalya"},{city:"Hatay"},{city:"Adana"},{city:"Muğla"}], desc: "Tropikal bir bitkidir. Mersin (Anamur) çevresinde yetişir.", state: false },
+            { id: "kivi", name: "Kivi", rankings: [{city:"Yalova"},{city:"Bursa"},{city:"Ordu"},{city:"Sakarya"},{city:"Samsun"}], desc: "Nemli ortamları sever. Yalova liderdir.", state: false },
+            { id: "mercimek", name: "Kırmızı Mercimek", rankings: [{city:"Şanlıurfa"},{city:"Diyarbakır"},{city:"Mardin"},{city:"Batman"},{city:"Gaziantep"}], desc: "Kuraklığa dayanıklıdır. Güneydoğu Anadolu merkezdir.", state: false },
+            { id: "uzum", name: "Üzüm", rankings: [{city:"Manisa"},{city:"Denizli"},{city:"Mersin"},{city:"Nevşehir"},{city:"İzmir"}], desc: "Soğuğa dayanıklıdır. Manisa kuru üzümde liderdir.", state: false },
+            { id: "elma", name: "Elma", rankings: [{city:"Isparta"},{city:"Karaman"},{city:"Niğde"},{city:"Antalya"},{city:"Kayseri"}], desc: "Isparta ve Karaman elmasıyla ünlüdür.", state: false },
+            { id: "aycicegi", name: "Ayçiçeği", rankings: [{city:"Edirne"},{city:"Tekirdağ"},{city:"Kırklareli"},{city:"Konya"},{city:"Adana"}], desc: "Trakya (Ergene Havzası) en yoğun ekim alanıdır.", state: false }
         ];
 
-        // --- MAP ENGINE ---
+        // --- GAME LOGIC ---
+        const game = {
+            isLightMode: false,
+            toggleTheme: function() {
+                this.isLightMode = !this.isLightMode;
+                document.body.classList.toggle('light-mode', this.isLightMode);
+                document.querySelector('.light-icon').classList.toggle('hidden', this.isLightMode);
+                document.querySelector('.dark-icon').classList.toggle('hidden', !this.isLightMode);
+            }
+        };
+
         const mapEngine = {
             svg: null,
             geoBounds: { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 },
             viewBox: { w: 1000, h: 450 },
             scale: 1, offsetX: 0, offsetY: 0,
-            mapData: null,
-            MAP_DATA_URL: 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json',
 
             init: function() {
-                this.svg = document.getElementById('game-map');
-                this.fetchMapData();
-                window.addEventListener('resize', () => { if(this.mapData) this.renderMap(this.mapData); });
-            },
-
-            fetchMapData: function() {
-                fetch(this.MAP_DATA_URL)
-                    .then(r => r.ok ? r.json() : Promise.reject("Data Fetch Error"))
-                    .then(data => {
-                        this.mapData = data;
-                        this.renderMap(data);
-                        const loader = document.getElementById('loading-overlay');
-                        loader.style.opacity = '0';
-                        setTimeout(() => loader.classList.add('hidden'), 500);
-                        gameLogic.start();
-                    })
-                    .catch(console.error);
+                const url = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
+                fetch(url).then(r=>r.json()).then(data => {
+                    this.loadMap(data);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    gameLogic.start();
+                });
+                lucide.createIcons();
             },
 
             scanCoords: function(coords) {
@@ -546,99 +403,6 @@
                     x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
                     y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
                 };
-            },
-            
-            getCentroid: function(geometry) {
-                let xSum = 0, ySum = 0, count = 0;
-                const processCoords = (coords) => {
-                     if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number') {
-                        const p = this.project(coords[0], coords[1]);
-                        xSum += p.x; ySum += p.y; count++;
-                     } else if (Array.isArray(coords)) coords.forEach(processCoords);
-                };
-                processCoords(geometry.coordinates);
-                return count > 0 ? { x: xSum/count, y: ySum/count } : null;
-            },
-
-            renderMap: function(data) {
-                const layerProvinces = document.getElementById('layer-provinces');
-                layerProvinces.innerHTML = '';
-                this.geoBounds = { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 };
-                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
-
-                const padding = 20;
-                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
-                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
-                const scaleW = (this.viewBox.w - 2 * padding) / lonSpan;
-                const scaleH = (this.viewBox.h - 2 * padding) / latSpan;
-                
-                this.scale = Math.min(scaleW, scaleH);
-                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
-                this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
-
-                data.features.forEach(f => {
-                    const d = this.createPathD(f.geometry);
-                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                    path.setAttribute("d", d);
-                    path.setAttribute("class", "province-path");
-                    const cityName = f.properties.name || f.properties.NAME;
-                    path.setAttribute("data-name", cityName);
-                    path.setAttribute("id", "province-" + this.normalizeString(cityName));
-                    
-                    const center = this.getCentroid(f.geometry);
-                    if(center) {
-                        path.setAttribute("data-cx", center.x);
-                        path.setAttribute("data-cy", center.y);
-                    }
-                    path.onclick = (e) => { e.stopPropagation(); gameLogic.handleCityClick(cityName, path); };
-                    layerProvinces.appendChild(path);
-                });
-            },
-            
-            drawRankingBadges: function(rankings) {
-                const layerBadges = document.getElementById('layer-badges');
-                layerBadges.innerHTML = '';
-                
-                rankings.forEach((rankItem, index) => {
-                    const normalizedName = this.normalizeString(rankItem.city);
-                    const path = document.getElementById("province-" + normalizedName);
-                    
-                    if (path && path.hasAttribute("data-cx")) {
-                        const x = parseFloat(path.getAttribute("data-cx"));
-                        const y = parseFloat(path.getAttribute("data-cy"));
-                        
-                        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                        g.setAttribute("class", "rank-badge");
-                        g.style.animationDelay = `${index * 100}ms`;
-                        
-                        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                        circle.setAttribute("cx", x);
-                        circle.setAttribute("cy", y);
-                        circle.setAttribute("r", index === 0 ? "8" : "6");
-                        // #059669 (Emerald 600) for 1st, #2563eb (Blue 600) for others
-                        circle.setAttribute("fill", index === 0 ? "#059669" : "#2563eb");
-                        circle.setAttribute("stroke", "#ffffff");
-                        circle.setAttribute("stroke-width", "1");
-                        
-                        const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                        text.setAttribute("x", x);
-                        text.setAttribute("y", y + (index === 0 ? 1 : 1.5));
-                        text.setAttribute("font-size", index === 0 ? "10" : "8");
-                        text.setAttribute("fill", "white");
-                        text.setAttribute("text-anchor", "middle");
-                        text.setAttribute("dominant-baseline", "middle");
-                        text.setAttribute("font-family", "Arial");
-                        text.setAttribute("font-weight", "bold");
-                        text.textContent = index + 1;
-                        
-                        g.appendChild(circle);
-                        g.appendChild(text);
-                        layerBadges.appendChild(g);
-                        
-                        path.classList.add(index === 0 ? 'city-correct' : 'city-rank');
-                        path.classList.remove('city-hint', 'city-wrong', 'city-near');
-                    }
-                });
             },
 
             createPathD: function(geometry) {
@@ -658,166 +422,183 @@
                 return d;
             },
 
-            normalizeString: function(str) {
-                return str.toLocaleLowerCase('tr-TR')
-                          .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
-                          .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
-                          .replace(/\s+/g, '-');
+            loadMap: function(data) {
+                this.svg = document.getElementById('game-map');
+                const layer = document.getElementById('layer-provinces');
+                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
+
+                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+                const padding = 20;
+                this.scale = Math.min((this.viewBox.w - 2 * padding) / lonSpan, (this.viewBox.h - 2 * padding) / latSpan);
+                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+                this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
+
+                data.features.forEach(f => {
+                    const d = this.createPathD(f.geometry);
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d);
+                    path.setAttribute("class", "province-path");
+                    const cityName = f.properties.name || f.properties.NAME;
+                    path.setAttribute("data-name", cityName);
+                    path.onclick = (e) => { e.stopPropagation(); gameLogic.checkAnswer(cityName, path); };
+                    layer.appendChild(path);
+                });
+            },
+
+            drawBadges: function(rankings) {
+                const layer = document.getElementById('layer-badges');
+                layer.innerHTML = "";
+                // Logic to draw numbers on cities could go here if needed,
+                // for now we rely on the modal list.
             }
         };
 
-        // --- GAME LOGIC ---
         const gameLogic = {
-            currentProduct: null,
-            score: 0,
-            totalQuestions: 0,
-            isAnswered: false,
+            current: null, score: 0, total: 0, isAnswered: false,
 
-            start: function() { this.loadQuestion(); },
+            start: function() { this.next(); },
 
-            loadQuestion: function() {
-                const randomIndex = Math.floor(Math.random() * products.length);
-                this.currentProduct = products[randomIndex];
+            next: function() {
+                const idx = Math.floor(Math.random() * products.length);
+                this.current = products[idx];
                 this.isAnswered = false;
 
-                const nameEl = document.getElementById('product-name');
-                nameEl.style.opacity = '0';
-                setTimeout(() => {
-                    nameEl.innerText = this.currentProduct.name;
-                    nameEl.style.opacity = '1';
-                }, 200);
+                document.getElementById('product-name').innerText = this.current.name;
+                const badge = document.getElementById('state-badge');
+                if(this.current.state) badge.classList.remove('hidden'); else badge.classList.add('hidden');
 
-                document.getElementById('next-btn').classList.add('hidden');
-                document.getElementById('status-message').innerHTML = "";
-                document.getElementById('status-message').style.opacity = 0;
-                document.getElementById('status-message').className = "min-h-[40px] flex items-center justify-center text-xs font-medium text-center transition-all duration-300 opacity-0 mb-4 px-2 py-2 rounded-lg";
-
-                const badge = document.getElementById('state-control-badge');
-                if(this.currentProduct.isStateControlled) badge.classList.remove('hidden');
-                else badge.classList.add('hidden');
-
-                this.resetMapColors();
+                // Clear map state
+                document.querySelectorAll('.province-path').forEach(p =>
+                    p.classList.remove('city-correct','city-wrong','city-near','city-rank'));
             },
 
-            handleCityClick: function(clickedName, pathElement) {
-                if (this.isAnswered) return;
-
-                const nClicked = mapEngine.normalizeString(clickedName);
-                const rankingIndex = this.currentProduct.rankings.findIndex(r => mapEngine.normalizeString(r.city) === nClicked);
+            checkAnswer: function(cityName, el) {
+                if(this.isAnswered) return;
                 
-                if (rankingIndex === 0) {
+                const normalize = (s) => s.toLocaleLowerCase('tr-TR');
+                const clicked = normalize(cityName);
+                const rankings = this.current.rankings.map(r => normalize(r.city));
+                const rankIdx = rankings.indexOf(clicked);
+
+                if (rankIdx === 0) {
+                    // Correct (#1)
                     this.isAnswered = true;
-                    this.totalQuestions++;
-                    this.score += 10;
-                    this.showStatus("DOĞRU TESPİT!", "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20");
-                    this.showResult(true);
-                } else if (rankingIndex > 0) {
-                    pathElement.classList.add('city-near');
-                    this.showStatus(`${clickedName} #${rankingIndex + 1} SIRADA. LİDERİ BUL!`, "bg-amber-500/10 text-amber-400 border border-amber-500/20");
+                    this.score += 10; this.total++;
+                    el.classList.add('city-correct');
+                    this.showStatus("DOĞRU TESPİT!", "bg-emerald-500 text-white");
+                    this.showModal(true);
+                    this.triggerConfetti();
+                } else if (rankIdx > 0) {
+                    // Top 5 but not #1
+                    el.classList.add('city-near');
+                    this.showStatus(`${cityName} #${rankIdx+1}. SIRADA! LİDERİ BUL.`, "bg-amber-500 text-white");
                 } else {
+                    // Wrong
                     this.isAnswered = true;
-                    this.totalQuestions++;
-                    pathElement.classList.add('city-wrong');
-                    this.showResult(false);
+                    this.total++;
+                    el.classList.add('city-wrong');
+                    this.showStatus("YANLIŞ! SIRALAMA DIŞI.", "bg-red-500 text-white");
+                    this.showModal(false);
                 }
-                this.updateScoreBoard();
+                this.updateStats();
             },
-            
-            showStatus: function(msg, classes) {
-                const el = document.getElementById('status-message');
+
+            showStatus: function(msg, cls) {
+                const el = document.getElementById('status-msg');
                 el.innerText = msg;
-                el.className = `min-h-[40px] flex items-center justify-center text-xs font-bold text-center transition-all duration-300 opacity-100 mb-4 px-2 py-2 rounded-lg ${classes}`;
+                el.className = cls;
+                el.classList.add('active');
+                setTimeout(() => el.classList.remove('active'), 2000);
             },
 
-            resetMapColors: function() {
-                const paths = document.querySelectorAll('.province-path');
-                paths.forEach(path => {
-                    path.classList.remove('city-correct', 'city-wrong', 'city-hint', 'city-near', 'city-rank');
-                });
-                document.getElementById('layer-badges').innerHTML = '';
+            showHint: function() {
+                // Show modal as info only
+                document.getElementById('ranking-container').classList.add('hidden');
+                this.openModal("Bilgi Kartı", "Tarafsız", false);
             },
 
-            updateScoreBoard: function() {
-                const scoreEl = document.getElementById('score-display');
-                scoreEl.innerText = this.score;
-                const barProgress = (this.score / (Math.max(this.totalQuestions, 1) * 10)) * 100;
-                document.getElementById('progress-bar').style.width = `${Math.min(barProgress, 100)}%`;
-                document.getElementById('progress-text').innerText = `${Math.round(Math.min(barProgress, 100))}%`;
+            showModal: function(isResult) {
+                const isCorrect = document.querySelector('.city-correct') !== null;
+                document.getElementById('ranking-container').classList.remove('hidden');
+
+                let title = isCorrect ? "BAŞARILI!" : "YANLIŞ CEVAP";
+                if (!isResult) title = "BİLGİ";
+
+                this.openModal(title, this.current.rankings[0].city, isResult, isCorrect);
             },
 
-            nextQuestion: function() {
-                this.closeModal();
-                this.loadQuestion();
-            },
-
-            showResult: function(isCorrect) {
-                document.getElementById('next-btn').classList.remove('hidden');
-                mapEngine.drawRankingBadges(this.currentProduct.rankings);
-                this.showModal(isCorrect);
-            },
-
-            showModal: function(isCorrect) {
+            openModal: function(title, city, isResult, isCorrect) {
                 const modal = document.getElementById('info-modal');
-                const content = modal.querySelector('.modal-content');
-                const iconContainer = document.getElementById('modal-icon-container');
-                const title = document.getElementById('modal-title');
-                const city = document.getElementById('modal-city');
-                const desc = document.getElementById('modal-desc');
-                const rankingList = document.getElementById('ranking-list');
+                const icon = document.getElementById('modal-icon');
 
-                modal.classList.remove('hidden');
-                void modal.offsetWidth;
-                content.style.opacity = '1';
-                content.style.transform = 'scale(1)';
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-city').innerText = isResult ? `Lider: ${this.current.rankings[0].city}` : this.current.name;
+                document.getElementById('modal-desc').innerText = this.current.desc;
 
-                const topCity = this.currentProduct.rankings[0].city;
-
-                if (isCorrect) {
-                    iconContainer.className = "w-12 h-12 mx-auto rounded-lg flex items-center justify-center text-xl mb-3 shadow-lg bg-emerald-500 text-white";
-                    iconContainer.innerHTML = '<i class="fas fa-check"></i>';
-                    title.innerText = "Başarılı Analiz";
-                    title.className = "font-display text-xl font-bold text-white tracking-tight";
+                // Icon styling
+                if (!isResult) {
+                    icon.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg text-white font-bold text-xl bg-gray-500";
+                    icon.innerHTML = '<i data-lucide="info"></i>';
+                } else if (isCorrect) {
+                    icon.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg text-white font-bold text-xl bg-emerald-500";
+                    icon.innerHTML = '<i data-lucide="check"></i>';
                 } else {
-                    iconContainer.className = "w-12 h-12 mx-auto rounded-lg flex items-center justify-center text-xl mb-3 shadow-lg bg-rose-500 text-white";
-                    iconContainer.innerHTML = '<i class="fas fa-times"></i>';
-                    title.innerText = "Hatalı Analiz";
-                    title.className = "font-display text-xl font-bold text-white tracking-tight";
+                    icon.className = "w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg text-white font-bold text-xl bg-red-500";
+                    icon.innerHTML = '<i data-lucide="x"></i>';
                 }
+                lucide.createIcons();
 
-                city.innerText = `Lider Üretici: ${topCity}`;
-                desc.innerText = this.currentProduct.description;
-
-                let html = '';
-                this.currentProduct.rankings.forEach((item, index) => {
-                    const isTop = index === 0;
-                    const bgClass = isTop ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-gray-800 border-gray-700';
-                    const textClass = isTop ? 'text-indigo-400 font-bold' : 'text-gray-400';
-                    
-                    html += `
-                    <div class="flex items-center justify-between px-3 py-2 rounded border ${bgClass}">
-                        <div class="flex items-center gap-3">
-                            <span class="w-5 h-5 flex items-center justify-center rounded bg-gray-900 text-[10px] font-bold text-gray-500 border border-gray-700">
-                                ${index + 1}
-                            </span>
-                            <span class="text-xs ${textClass}">${item.city}</span>
+                // Build Ranking List
+                const list = document.getElementById('ranking-list');
+                list.innerHTML = "";
+                this.current.rankings.forEach((r, i) => {
+                    const row = document.createElement('div');
+                    row.className = `rank-row ${i===0 ? 'top-rank' : ''}`;
+                    row.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <span class="w-4 h-4 rounded flex items-center justify-center bg-[var(--panel-bg)] border border-[var(--panel-border)] text-[9px] font-bold">${i+1}</span>
+                            <span class="text-[10px] font-bold ${i===0 ? 'text-[var(--accent-primary)]' : 'text-[var(--text-secondary)]'}">${r.city}</span>
                         </div>
-                        ${isTop ? '<i class="fas fa-trophy text-amber-400 text-xs"></i>' : ''}
-                    </div>
+                        ${i===0 ? '<i data-lucide="trophy" class="w-3 h-3 text-amber-400"></i>' : ''}
                     `;
+                    list.appendChild(row);
                 });
-                rankingList.innerHTML = html;
+                if(window.lucide) lucide.createIcons();
+
+                modal.classList.add('active');
             },
 
             closeModal: function() {
-                const modal = document.getElementById('info-modal');
-                const content = modal.querySelector('.modal-content');
-                content.style.opacity = '0';
-                content.style.transform = 'scale(0.95)';
-                setTimeout(() => { modal.classList.add('hidden'); }, 300);
+                document.getElementById('info-modal').classList.remove('active');
+                if(this.isAnswered) this.next();
+            },
+
+            updateStats: function() {
+                document.getElementById('score').innerText = this.score;
+                const progress = Math.min((this.score / 100) * 100, 100); // Dummy logic
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+                document.getElementById('progress-text').innerText = `${this.total} Analiz`;
+            },
+
+            triggerConfetti: function() {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
             }
         };
 
-        document.addEventListener('DOMContentLoaded', () => { mapEngine.init(); });
+        // Mobile Menu
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            if (menu.classList.contains('open')) {
+                menu.classList.remove('open'); menuIcon.classList.remove('hidden'); closeIcon.classList.add('hidden');
+            } else {
+                menu.classList.add('open'); menuIcon.classList.add('hidden'); closeIcon.classList.remove('hidden');
+            }
+        };
+
+        mapEngine.init();
     </script>
 </body>
 </html>
