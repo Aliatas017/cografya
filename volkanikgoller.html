@@ -14,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            /* --- BLUE THEME PALETTE (RESTORED) --- */
+            /* --- MERGED PALETTE --- */
             --bg-body: #020617;         
             --bg-dots: #1e293b;         
             --panel-bg: #0f172a;        
@@ -228,8 +228,7 @@
             background: var(--panel-bg); border: 2px solid var(--panel-border);
             border-radius: 12px; padding: 0.8rem;
             display: flex; flex-direction: column; gap: 0.5rem;
-            pointer-events: none; opacity: 0.9;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            pointer-events: none; opacity: 0.8;
         }
         .legend-row { display: flex; gap: 1rem; }
         .legend-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
@@ -591,11 +590,7 @@
                 lucide.createIcons();
                 this.updateThemeIcon();
                 document.body.addEventListener('click', () => audioController.init(), { once: true });
-                
-                // Adjust responsive layout on resize
-                window.addEventListener('resize', () => {
-                    if(this.svg) this.loadMap(this.mapData); // Re-calculate map scale/offset
-                });
+                window.addEventListener('resize', () => { if(this.svg) this.loadMap(this.mapData); });
             },
 
             toggleTheme: function() {
@@ -754,23 +749,30 @@
 
                 lakeData.forEach((wData, index) => {
                     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                    g.setAttribute("class", "game-marker entrance-anim");
-                    g.style.animationDelay = `${index * 0.05}s`;
+                    g.setAttribute("class", "game-marker");
                     g.setAttribute("transform", `translate(${wData.visX}, ${wData.visY})`);
                     g.setAttribute("data-name", wData.name);
                     g.onclick = (e) => { e.stopPropagation(); this.checkAnswer(wData, g); };
 
-                    const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                    innerG.setAttribute("class", "marker-content");
                     const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                    hitArea.setAttribute("class", "hit-area"); hitArea.setAttribute("r", "10"); hitArea.setAttribute("fill", "transparent");
-                    innerG.appendChild(hitArea);
+                    hitArea.setAttribute("class", "hit-area");
+                    hitArea.setAttribute("r", "15");
+                    hitArea.setAttribute("fill", "transparent");
+                    g.appendChild(hitArea);
+
+                    const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    innerG.setAttribute("class", "marker-visual-group");
                     
-                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    const shadow = document.createElementNS("http://www.w3.org/2000/svg", "ellipse");
+                    shadow.setAttribute("cx", "0"); shadow.setAttribute("cy", "9");
+                    shadow.setAttribute("rx", "4.5"); shadow.setAttribute("ry", "2.5");
+                    shadow.setAttribute("class", "marker-shadow");
+                    innerG.appendChild(shadow);
+
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+                    shape.setAttribute("points", "0,-7 6.06,-3.5 6.06,3.5 0,7 -6.06,3.5 -6.06,-3.5");
                     shape.setAttribute("class", "marker-shape");
-                    shape.setAttribute("d", "M 0,-6 L 6,0 L 0,6 L -6,0 Z"); 
                     
-                    // --- COLOR ASSIGNMENT ---
                     let fillColor = "#ffffff";
                     if (wData.region === "icanadolu") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-icanadolu');
                     else if (wData.region === "doguanadolu") fillColor = getComputedStyle(document.documentElement).getPropertyValue('--region-doguanadolu');
@@ -783,6 +785,7 @@
                     shape.style.fill = fillColor; 
 
                     innerG.appendChild(shape); 
+
                     g.appendChild(innerG); layer.appendChild(g);
                     wData.el = g;
                 });
@@ -818,7 +821,7 @@
             checkAnswer: function(lake, el) {
                 if (!this.state.active) return;
                 if (el.classList.contains('found')) return; 
-                const contentEl = el.querySelector('.marker-content');
+                const contentEl = el.querySelector('.marker-visual-group');
                 if (lake.name === this.state.current.name) {
                     audioController.play('success'); el.classList.add('found');
                     this.addLabel(lake);
@@ -884,27 +887,51 @@
 
             closeInfo: function() {
                 document.getElementById('info-modal').classList.remove('active');
-                this.startChronometer(); this.nextQuestion();
+
+                this.startChronometer();
+
+                if (this.state.isHintMode) {
+                    this.state.isHintMode = false;
+                    // Hint modundan çıkıldığında soru değişmez, süre devam eder
+                } else {
+                    this.nextQuestion();
+                }
             },
 
             hint: function() {
                 if (!this.state.active || !this.state.current) return;
                 audioController.play('click');
-                const target = lakeData.find(m => m.name === this.state.current.name);
-                this.state.score -= 5; this.updateUI();
+
+                this.state.score -= 5;
+                this.updateUI();
                 const btn = document.getElementById('hint-btn');
                 this.spawnFloatingText("-5", btn, "text-orange-400");
-                if (target && target.el) {
-                    const layer = document.getElementById('layer-effects');
-                    for(let i=0; i<3; i++) {
-                        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                        circle.setAttribute("cx", target.visX); circle.setAttribute("cy", target.visY);
-                        circle.setAttribute("r", 5); circle.setAttribute("fill", "none");
-                        circle.setAttribute("stroke", "#fbbf24"); circle.setAttribute("stroke-width", "2"); circle.style.opacity = "0.8";
-                        circle.animate([{ r: 5, opacity: 0.8, strokeWidth: "3px" }, { r: 40 + (i*15), opacity: 0, strokeWidth: "0px" }], { duration: 1500 + (i*300), easing: "cubic-bezier(0, 0, 0.2, 1)", iterations: 1 });
-                        layer.appendChild(circle); setTimeout(() => layer.removeChild(circle), 2500);
-                    }
-                }
+
+                // --- YENİ İPUCU MANTIĞI: SADECE BİLGİ KARTI GÖSTER (YER GÖSTERME YOK) ---
+                this.state.isHintMode = true;
+                clearInterval(this.state.timerInterval); // Süreyi durdur
+
+                const target = this.state.current; // Hedef göl verisi
+
+                // Kartı doldur
+                document.getElementById('info-title').innerText = target.name;
+                let regionLabel = "BÖLGE";
+                if(target.region === "icanadolu") regionLabel = "İÇ ANADOLU";
+                else if(target.region === "doguanadolu") regionLabel = "DOĞU ANADOLU";
+                document.getElementById('info-type').innerText = regionLabel;
+                document.getElementById('info-desc').innerText = target.desc;
+
+                // Buton metnini değiştir
+                const btnSpan = document.querySelector('#info-card .continue-btn span');
+                if(btnSpan) btnSpan.innerText = "Oyuna Dön";
+
+                // Tema Rengi
+                const card = document.getElementById('info-card');
+                card.classList.remove('info-theme-icanadolu', 'info-theme-doguanadolu');
+                if(target.region) card.classList.add('info-theme-' + target.region);
+
+                // Modalı aç
+                document.getElementById('info-modal').classList.add('active');
             },
 
             addLabel: function(lake) {

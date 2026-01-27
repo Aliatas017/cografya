@@ -23,8 +23,8 @@
             --text-secondary: #94a3b8;  
             --text-label: #ffffff;      
             
-            --accent-primary: #f43f5e; 
-            --accent-glow: rgba(244, 63, 94, 0.2);  
+            --accent-primary: #38bdf8; /* UI Standard Blue */
+            --accent-glow: rgba(56, 189, 248, 0.2);
             --accent-warn: #fbbf24;     
             --accent-danger: #f87171;   
             --accent-success: #4ade80;  
@@ -50,9 +50,9 @@
             --city-text: #64748b;
             --city-dot: #475569;
             
-            /* LABEL STYLES - MINIMALIST DIRECT TEXT */
+            /* LABEL STYLES */
             --label-text-color: #ffffff;
-            --label-stroke-color: #020617; /* Arka plan rengiyle aynı kontur */
+            --label-stroke-color: #020617;
         }
 
         body.light-mode {
@@ -63,7 +63,7 @@
             --text-primary: #0f172a;    
             --text-secondary: #475569;  
             --text-label: #0f172a;      
-            --accent-primary: #e11d48;
+            --accent-primary: #0284c7;
             --map-bg: #e2e8f0;          
             --map-border: #94a3b8;      
             --map-grad-start: #f8fafc;
@@ -167,6 +167,7 @@
             background-color: var(--map-bg);
             background-image: radial-gradient(circle at 50% 50%, var(--map-grad-start) 0%, var(--map-grad-end) 100%);
             overflow: hidden; width: 100%;
+            padding-top: 0;
         }
 
         .province-path {
@@ -319,6 +320,24 @@
             animation: spin 10s linear infinite;
         }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* Yeni Başarı Efekti - Sparkles/Particles */
+        .sparkle-effect {
+            position: absolute;
+            width: 6px; height: 6px;
+            background: var(--theme-color);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--theme-color);
+            pointer-events: none;
+            opacity: 0;
+            z-index: 21; /* Kartın üzerinde */
+        }
+
+        @keyframes sparkle-float {
+            0% { transform: translate(0, 0) scale(0); opacity: 0; }
+            30% { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(1.2); }
+            100% { transform: translate(var(--end-x), var(--end-y)) scale(0); opacity: 0; }
+        }
     </style>
 </head>
 <body class="h-screen flex flex-col">
@@ -604,6 +623,7 @@
                 lucide.createIcons();
                 this.updateThemeIcon();
                 document.body.addEventListener('click', () => audioController.init(), { once: true });
+                window.addEventListener('resize', () => { if(this.svg) this.loadMap(this.mapData); });
             },
 
             toggleTheme: function() {
@@ -623,6 +643,7 @@
 
             fetchMapData: function(url) {
                 fetch(url).then(r => r.json()).then(data => {
+                    this.mapData = data; // Store data for resize redraws
                     this.loadMap(data);
                     document.getElementById('loading-overlay').style.display = 'none';
                     this.start();
@@ -854,15 +875,42 @@
             showInfo: function(plain) {
                 clearInterval(this.state.timerInterval);
                 audioController.play('achievement');
-                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, zIndex: 200 });
+
+                // Show floating particles instead of confetti
+                const card = document.getElementById('info-card');
+                for(let i=0; i<15; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'sparkle-effect';
+
+                    const startX = Math.random() * 50 - 25;
+                    const startY = Math.random() * 50 - 25;
+                    const endX = (Math.random() - 0.5) * 200;
+                    const endY = -100 - Math.random() * 100;
+
+                    dot.style.setProperty('--tx', `${startX}px`);
+                    dot.style.setProperty('--ty', `${startY}px`);
+                    dot.style.setProperty('--end-x', `${endX}px`);
+                    dot.style.setProperty('--end-y', `${endY}px`);
+
+                    if (plain.type === "KAF") dot.style.background = "#ff0055";
+                    else if (plain.type === "DAF") dot.style.background = "#ff9100";
+                    else dot.style.background = "#d500f9";
+
+                    dot.style.left = "50%"; dot.style.top = "50%";
+                    dot.style.animation = `sparkle-float ${1 + Math.random()}s ease-out forwards`;
+
+                    card.appendChild(dot);
+                    setTimeout(() => dot.remove(), 2000);
+                }
+
                 document.getElementById('info-title').innerText = plain.name;
                 document.getElementById('info-type').innerText = plain.type;
                 document.getElementById('info-desc').innerText = plain.info;
-                const card = document.getElementById('info-card');
-                card.classList.remove('info-theme-kaf', 'info-theme-daf', 'info-theme-baf');
-                if(plain.type === "KAF") card.classList.add('info-theme-kaf');
-                else if(plain.type === "DAF") card.classList.add('info-theme-daf');
-                else if(plain.type === "BAF") card.classList.add('info-theme-baf');
+                const cardEl = document.getElementById('info-card');
+                cardEl.classList.remove('info-theme-kaf', 'info-theme-daf', 'info-theme-baf');
+                if(plain.type === "KAF") cardEl.classList.add('info-theme-kaf');
+                else if(plain.type === "DAF") cardEl.classList.add('info-theme-daf');
+                else if(plain.type === "BAF") cardEl.classList.add('info-theme-baf');
                 document.getElementById('info-modal').classList.add('active');
             },
 
