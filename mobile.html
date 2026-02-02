@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Delta Ovaları Mobil</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Renk Paleti */
+            --bg-body: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.85);
+            --text-primary: #f8fafc;
+            --accent-primary: #38bdf8;
+            --accent-warn: #fbbf24;
+            --accent-danger: #f87171;
+            --accent-success: #4ade80;
+            
+            --marker-size: 1.2;
+            
+            /* Neon Efektler */
+            --region-karadeniz: #00e676;
+            --region-ege: #ffea00;
+            --region-akdeniz: #ff3d00;
+        }
+
+        /* Dokunmatik Gecikmesini Önle */
+        * { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #020617;
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100dvh; 
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        /* --- APP CONTAINER --- */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            background-color: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            transition: all 0.3s ease;
+        }
+        
+        /* Dikey modda (mobil) dar tut, Yatay modda (landscape) genişlet */
+        @media (orientation: portrait) and (min-width: 481px) {
+            #app-container {
+                max-width: 480px;
+                height: 95dvh;
+                border-radius: 24px;
+                border: 8px solid #1e293b;
+            }
+        }
+        
+        /* Yatay Mod (Landscape) için tam ekran */
+        @media (orientation: landscape) {
+            #app-container {
+                max-width: 100%;
+                height: 100%;
+                border-radius: 0;
+                border: none;
+            }
+            /* Yatayda soru paneli biraz daha kompakt olsun */
+            .question-card {
+                max-width: 500px !important;
+                padding: 12px 24px !important;
+            }
+        }
+
+        /* --- HEADER (HUD) --- */
+        #hud-top {
+            position: absolute; top: 0; left: 0; right: 0;
+            padding: max(16px, env(safe-area-inset-top)) 16px 10px;
+            display: flex; justify-content: space-between; align-items: start;
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        .stat-pill {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 12px;
+            border-radius: 999px;
+            display: flex; flex-direction: column; align-items: center;
+            pointer-events: auto;
+            min-width: 60px;
+        }
+        .stat-label { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; font-weight: 700; }
+        .stat-val { font-size: 1.1rem; font-weight: 900; line-height: 1; }
+
+        /* --- MAP AREA --- */
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at center, #334155 0%, #020617 100%);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        svg { width: 100%; height: 100%; filter: drop-shadow(0 0 20px rgba(0,0,0,0.5)); }
+
+        .province-path {
+            fill: #1e293b; stroke: #475569; stroke-width: 0.5px;
+            vector-effect: non-scaling-stroke;
+            transition: fill 0.3s;
+        }
+        
+        /* Markers */
+        .game-marker { 
+            cursor: pointer; 
+            /* Transform origin markerın merkezi olsun */
+            transform-box: fill-box;
+            transform-origin: center;
+        }
+        .hit-area { fill: transparent; r: 35px; } /* Dokunma alanı genişletildi */
+        
+        .marker-shape {
+            stroke: #0f172a; stroke-width: 2px;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: center;
+            transform-box: fill-box;
+        }
+        
+        .game-marker:active .marker-shape { transform: scale(1.3); }
+        .game-marker.found .marker-shape { 
+            stroke: white; stroke-width: 2px; transform: scale(1.4);
+            fill: #06b6d4 !important;
+        }
+
+        /* Titreme Animasyonu (Yanlış Cevap) */
+        @keyframes shakeAnim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-6px); }
+            75% { transform: translateX(6px); }
+        }
+        
+        .shake .marker-shape {
+            animation: shakeAnim 0.4s ease-in-out;
+            fill: #ef4444 !important; /* Yanlışta anlık kırmızı */
+        }
+
+        /* Labels */
+        .map-label {
+            fill: white; font-weight: 800; font-size: 12px;
+            text-anchor: middle; pointer-events: none;
+            stroke: #020617; stroke-width: 3px; paint-order: stroke;
+            opacity: 0; animation: popIn 0.3s forwards;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* --- BOTTOM CONTROLS --- */
+        #game-controls {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            padding: 20px 20px max(24px, env(safe-area-inset-bottom));
+            display: flex; flex-direction: column; gap: 12px;
+            align-items: center;
+            z-index: 50;
+            background: linear-gradient(to top, #020617 0%, rgba(2,6,23,0.8) 80%, transparent 100%);
+            pointer-events: none;
+        }
+
+        .question-card {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(12px);
+            border: 2px solid var(--accent-primary);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 16px 24px;
+            width: 100%; max-width: 400px;
+            display: flex; align-items: center; justify-content: space-between;
+            pointer-events: auto;
+            transform: translateY(100px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .question-card.active { transform: translateY(0); opacity: 1; }
+
+        .target-group { display: flex; flex-direction: column; }
+        .target-sub { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; }
+        .target-main { font-size: 1.5rem; color: var(--accent-primary); font-weight: 900; line-height: 1.1; }
+
+        .hint-btn {
+            background: linear-gradient(135deg, #f59e0b, #ea580c);
+            color: white; border-radius: 12px;
+            width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(234, 88, 12, 0.4);
+            border: none; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .hint-btn:active { transform: scale(0.9); }
+
+        /* --- MODALS --- */
+        .modal-overlay {
+            position: absolute; inset: 0; z-index: 100;
+            background: rgba(2, 6, 23, 0.9);
+            backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .info-card {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 24px; width: 100%; max-width: 340px;
+            overflow: hidden;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8);
+        }
+        .modal-overlay.open .info-card { transform: scale(1) translateY(0); }
+
+        .region-badge {
+            display: inline-block; padding: 4px 12px; border-radius: 99px;
+            font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;
+            margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-primary {
+            width: 100%; background: var(--text-primary); color: var(--bg-body);
+            padding: 16px; font-weight: 800; border-radius: 16px;
+            text-transform: uppercase; letter-spacing: 0.05em;
+            margin-top: 20px;
+        }
+        .btn-primary:active { transform: scale(0.98); opacity: 0.9; }
+
+        .feedback-float {
+            position: absolute; font-weight: 900; font-size: 2rem;
+            pointer-events: none; z-index: 60;
+            animation: floatUp 0.8s ease-out forwards;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0) scale(0.5); } 100% { opacity: 0; transform: translateY(-80px) scale(1.5); } }
+        
+        .loader { width: 40px; height: 40px; border: 4px solid #334155; border-bottom-color: var(--accent-primary); border-radius: 50%; animation: rot 1s linear infinite; }
+        @keyframes rot { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    
+    <div id="app-container">
+
+        <!-- Loading Screen -->
+        <div id="loader" class="absolute inset-0 z-[200] bg-[#0f172a] flex flex-col items-center justify-center">
+            <div class="loader mb-4" id="loader-spinner"></div>
+            <div class="text-sm font-bold text-slate-400" id="loading-text">HARİTA HAZIRLANIYOR</div>
+            <div id="error-actions" class="hidden mt-4 text-center">
+                <p class="text-xs text-red-400 mb-3" id="error-detail">Veri alınamadı.</p>
+                <button onclick="location.reload()" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white font-bold text-xs uppercase tracking-wider">Tekrar Dene</button>
+            </div>
+        </div>
+
+        <!-- HUD Top -->
+        <div id="hud-top">
+            <div class="stat-pill" style="border-color: rgba(251, 191, 36, 0.3)">
+                <span class="stat-label text-amber-400">SÜRE</span>
+                <span class="stat-val text-amber-400" id="timer">00:00</span>
+            </div>
+            
+            <button onclick="game.toggleAudio()" class="w-10 h-10 rounded-full bg-slate-800/80 border border-slate-700 flex items-center justify-center text-slate-400 pointer-events-auto active:bg-slate-700">
+                 <i data-lucide="volume-2" class="w-5 h-5 sound-icon"></i>
+            </button>
+
+            <div class="stat-pill" style="border-color: rgba(74, 222, 128, 0.3)">
+                <span class="stat-label text-green-400">PUAN</span>
+                <span class="stat-val text-green-400" id="score">0</span>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="map-container">
+            <svg id="game-map" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="layer-provinces"></g>
+                <g id="layer-markers"></g>
+                <g id="layer-labels"></g>
+                <g id="layer-effects"></g>
+            </svg>
+        </div>
+
+        <!-- Bottom Controls -->
+        <div id="game-controls">
+            <div id="question-panel" class="question-card">
+                <div class="target-group">
+                    <span class="target-sub">HEDEF DELTA</span>
+                    <span class="target-main" id="target-name">...</span>
+                </div>
+                <button onclick="game.hint()" class="hint-btn">
+                    <i data-lucide="lightbulb" class="w-6 h-6"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Info Modal -->
+        <div id="info-modal" class="modal-overlay">
+            <div class="info-card p-6 text-center relative">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white to-transparent opacity-20"></div>
+                <div class="w-16 h-16 mx-auto bg-green-500/20 rounded-full flex items-center justify-center mb-4 text-green-400">
+                    <i data-lucide="check" class="w-8 h-8 stroke-[3]"></i>
+                </div>
+                <div id="info-region" class="region-badge bg-slate-800 text-slate-300">BÖLGE</div>
+                <h2 id="info-title" class="text-2xl font-black text-white mb-2 leading-tight">Delta Adı</h2>
+                <p id="info-desc" class="text-sm text-slate-400 font-medium leading-relaxed">Açıklama</p>
+                <button onclick="game.closeInfo()" class="btn-primary">DEVAM ET</button>
+            </div>
+        </div>
+
+        <!-- Game Over Modal -->
+        <div id="end-modal" class="modal-overlay">
+            <div class="info-card p-8 text-center">
+                <i data-lucide="trophy" class="w-12 h-12 text-yellow-400 mx-auto mb-4"></i>
+                <h2 class="text-3xl font-black text-white mb-1">Oyun Bitti!</h2>
+                <p class="text-slate-400 text-sm mb-6">Tüm ovaları buldun.</p>
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase">Puan</div>
+                        <div class="text-xl font-black text-white" id="end-score">0</div>
+                    </div>
+                    <div class="bg-slate-800 p-3 rounded-xl border border-slate-700">
+                        <div class="text-[10px] text-slate-500 font-bold uppercase">Doğruluk</div>
+                        <div class="text-xl font-black text-blue-400" id="end-accuracy">%100</div>
+                    </div>
+                </div>
+                <button onclick="location.reload()" class="btn-primary bg-blue-500 text-white">TEKRAR OYNA</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const MAP_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
+        
+        const deltaData = [
+            { name: "Meriç Deltası", lat: 40.85, lon: 26.20, region: "ege", desc: "Türkiye-Yunanistan sınırını çizen Meriç Nehri'nin ağzında yer alır." },
+            { name: "Sakarya Deltası", lat: 41.10, lon: 30.60, region: "karadeniz", desc: "Sakarya Nehri'nin Karadeniz'e döküldüğü yerde oluşmuştur." },
+            { name: "Bafra Deltası", lat: 41.58, lon: 35.95, region: "karadeniz", desc: "Kızılırmak'ın denize döküldüğü alandadır. Tütün ve sebze üretimi yaygındır." },
+            { name: "Çarşamba Deltası", lat: 41.38, lon: 36.68, region: "karadeniz", desc: "Yeşilırmak Nehri tarafından oluşturulmuştur." },
+            { name: "Dikili Deltası", lat: 39.10, lon: 26.90, region: "ege", desc: "Bakırçay Nehri tarafından oluşturulmuştur." },
+            { name: "Menemen Deltası", lat: 38.58, lon: 26.95, region: "ege", desc: "Gediz Nehri'nin oluşturduğu büyük bir deltadır." },
+            { name: "Selçuk Deltası", lat: 37.95, lon: 27.28, region: "ege", desc: "Küçük Menderes Nehri'nin oluşturduğu deltadır." },
+            { name: "Balat Deltası", lat: 37.55, lon: 27.25, region: "ege", desc: "Büyük Menderes Nehri'nin oluşturduğu deltadır." },
+            { name: "Çukurova", lat: 36.85, lon: 35.55, region: "akdeniz", desc: "Seyhan ve Ceyhan nehirlerinin oluşturduğu en büyük delta ovasıdır." },
+            { name: "Silifke Deltası", lat: 36.32, lon: 33.95, region: "akdeniz", desc: "Göksu Nehri'nin denize döküldüğü yerde oluşmuştur." },
+            { name: "Asi Deltası", lat: 36.05, lon: 35.98, region: "akdeniz", desc: "Asi Nehri'nin denize döküldüğü küçük deltadır." }
+        ];
+
+        const audio = {
+            ctx: null, muted: false,
+            init: function() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            play: function(type) {
+                if(this.muted) return;
+                try {
+                    if(!this.ctx) this.init();
+                    if(this.ctx.state === 'suspended') this.ctx.resume();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain); gain.connect(this.ctx.destination);
+                    const now = this.ctx.currentTime;
+                    
+                    if(type === 'success') {
+                        osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                        gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                        osc.start(now); osc.stop(now + 0.3);
+                    } else if(type === 'error') {
+                        osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.3);
+                        gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                        osc.start(now); osc.stop(now + 0.3);
+                    } else if(type === 'click') {
+                        osc.frequency.setValueAtTime(800, now); gain.gain.setValueAtTime(0.1, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                        osc.start(now); osc.stop(now + 0.1);
+                    }
+                } catch(e) {}
+            }
+        };
+
+        const game = {
+            state: { active: false, score: 0, current: null, remaining: [], correct: 0, wrong: 0, timer: 0, interval: null },
+            bounds: { minLon: 25, maxLon: 45, minLat: 35, maxLat: 43 },
+            viewBox: { w: 1000, h: 450 },
+            
+            init: function() {
+                if (window.lucide) lucide.createIcons();
+                this.fetchMap();
+                const app = document.getElementById('app-container');
+                if(app) {
+                    app.addEventListener('touchstart', () => audio.init(), { once: true });
+                    app.addEventListener('click', () => audio.init(), { once: true });
+                }
+            },
+
+            fetchMap: function() {
+                fetch(MAP_URL)
+                    .then(r => {
+                        if (!r.ok) throw new Error(r.status + " " + r.statusText);
+                        return r.json();
+                    })
+                    .then(data => {
+                        this.calculateBounds(data);
+                        this.drawMap(data);
+                        const loader = document.getElementById('loader');
+                        loader.style.opacity = '0';
+                        setTimeout(() => { loader.style.display = 'none'; }, 500);
+                        this.startGame();
+                    })
+                    .catch(err => {
+                        console.error("Harita Hatası:", err);
+                        const loadingText = document.getElementById('loading-text');
+                        const spinner = document.getElementById('loader-spinner');
+                        const actions = document.getElementById('error-actions');
+                        const detail = document.getElementById('error-detail');
+                        
+                        if(loadingText) {
+                            loadingText.innerText = "YÜKLEME BAŞARISIZ";
+                            loadingText.classList.add("text-red-500");
+                        }
+                        if(detail) detail.innerText = "Veri kaynağı hatası: " + err.message;
+                        if(spinner) spinner.style.display = 'none';
+                        if(actions) actions.classList.remove('hidden');
+                    });
+            },
+
+            calculateBounds: function(data) {
+                let minLon = 180, maxLon = -180, minLat = 90, maxLat = -90;
+                let found = false;
+
+                const scan = (coords) => {
+                    if (Array.isArray(coords) && coords.length >= 2 && typeof coords[0] === 'number') {
+                         const lon = coords[0];
+                         const lat = coords[1];
+                         if (lon < minLon) minLon = lon;
+                         if (lon > maxLon) maxLon = lon;
+                         if (lat < minLat) minLat = lat;
+                         if (lat > maxLat) maxLat = lat;
+                         found = true;
+                    } else if (Array.isArray(coords)) {
+                        coords.forEach(scan);
+                    }
+                };
+
+                if (data && data.features) {
+                    data.features.forEach(f => {
+                        if(f.geometry && f.geometry.coordinates) {
+                            scan(f.geometry.coordinates);
+                        }
+                    });
+                }
+                
+                if (!found || minLon > maxLon) {
+                    this.bounds = { minLon: 25.5, maxLon: 44.8, minLat: 35.8, maxLat: 42.1 };
+                    return;
+                }
+
+                const lonPad = (maxLon - minLon) * 0.05;
+                const latPad = (maxLat - minLat) * 0.05;
+
+                this.bounds = {
+                    minLon: minLon - lonPad,
+                    maxLon: maxLon + lonPad,
+                    minLat: minLat - latPad,
+                    maxLat: maxLat + latPad
+                };
+            },
+
+            project: function(lon, lat) {
+                const w = this.viewBox.w;
+                const h = this.viewBox.h;
+                const { minLon, maxLon, minLat, maxLat } = this.bounds;
+                
+                const scaleX = w / (maxLon - minLon);
+                const scaleY = h / (maxLat - minLat);
+                const scale = Math.min(scaleX, scaleY);
+                
+                const mapW = (maxLon - minLon) * scale;
+                const mapH = (maxLat - minLat) * scale;
+                
+                const xOffset = (w - mapW) / 2;
+                const yOffset = (h - mapH) / 2;
+
+                const x = xOffset + (lon - minLon) * scale;
+                const y = yOffset + (maxLat - lat) * scale;
+                
+                return { x, y };
+            },
+
+            drawMap: function(data) {
+                const provLayer = document.getElementById('layer-provinces');
+                if(data && data.features) {
+                    data.features.forEach(f => {
+                        let d = "";
+                        if (f.geometry && f.geometry.coordinates) {
+                            const coords = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.coordinates;
+                            coords.forEach(poly => {
+                                poly.forEach(ring => {
+                                    let ringD = "M";
+                                    ring.forEach((pt, i) => {
+                                        const p = this.project(pt[0], pt[1]);
+                                        if(!isNaN(p.x) && !isNaN(p.y)){
+                                            ringD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                                            if(i===0) ringD += "L";
+                                        }
+                                    });
+                                    ringD += "Z "; d += ringD;
+                                });
+                            });
+                        }
+                        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                        path.setAttribute("d", d);
+                        path.setAttribute("class", "province-path");
+                        provLayer.appendChild(path);
+                    });
+                }
+                this.drawMarkers();
+            },
+
+            drawMarkers: function() {
+                const markerLayer = document.getElementById('layer-markers');
+                this.state.remaining = [...deltaData]; 
+                
+                const processed = deltaData.map(d => {
+                    const p = this.project(d.lon, d.lat);
+                    return { ...d, x: p.x, y: p.y };
+                });
+
+                for(let k=0; k<15; k++) {
+                    for(let i=0; i<processed.length; i++) {
+                        for(let j=i+1; j<processed.length; j++) {
+                            const dx = processed[i].x - processed[j].x;
+                            const dy = processed[i].y - processed[j].y;
+                            const dist = Math.sqrt(dx*dx + dy*dy);
+                            if(dist < 30) { 
+                                const angle = Math.atan2(dy, dx);
+                                const move = (30 - dist) / 2;
+                                processed[i].x += Math.cos(angle) * move;
+                                processed[i].y += Math.sin(angle) * move;
+                                processed[j].x -= Math.cos(angle) * move;
+                                processed[j].y -= Math.sin(angle) * move;
+                            }
+                        }
+                    }
+                }
+
+                processed.forEach((d, i) => {
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "game-marker");
+                    g.setAttribute("transform", `translate(${d.x}, ${d.y})`);
+                    
+                    const hit = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hit.setAttribute("class", "hit-area");
+                    g.appendChild(hit);
+
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    shape.setAttribute("class", "marker-shape");
+                    shape.setAttribute("d", "M 0,-10 L 10,0 L 0,10 L -10,0 Z"); 
+                    
+                    let color = "#ffffff";
+                    if(d.region === 'karadeniz') color = "#00e676";
+                    else if(d.region === 'akdeniz') color = "#ff3d00";
+                    else color = "#ffea00";
+                    shape.setAttribute("fill", color);
+                    g.appendChild(shape);
+
+                    g.onclick = (e) => { e.stopPropagation(); this.handleInput(d, g); };
+                    markerLayer.appendChild(g);
+                    deltaData[i].el = g;
+                    this.state.remaining[i].el = g;
+                });
+            },
+
+            startGame: function() {
+                this.state.active = true;
+                this.state.timer = 0;
+                if(this.state.interval) clearInterval(this.state.interval);
+                this.state.interval = setInterval(() => {
+                    this.state.timer++;
+                    const m = Math.floor(this.state.timer/60).toString().padStart(2,'0');
+                    const s = (this.state.timer%60).toString().padStart(2,'0');
+                    const t = document.getElementById('timer'); if(t) t.innerText = `${m}:${s}`;
+                }, 1000);
+                this.nextQuestion();
+                const q = document.getElementById('question-panel'); if(q) q.classList.add('active');
+            },
+
+            nextQuestion: function() {
+                if(this.state.remaining.length === 0) { this.endGame(); return; }
+                const idx = Math.floor(Math.random() * this.state.remaining.length);
+                this.state.current = this.state.remaining[idx];
+                const t = document.getElementById('target-name');
+                if(t) { t.innerText = this.state.current.name; t.style.opacity = 0; setTimeout(() => t.style.opacity = 1, 100); }
+            },
+
+            handleInput: function(data, el) {
+                if(!this.state.active || el.classList.contains('found')) return;
+                
+                // Animasyon varsa temizle (tekrar basıldığında resetlemek için)
+                el.classList.remove('shake');
+                void el.offsetWidth; // Reflow tetikle
+
+                if(data.name === this.state.current.name) {
+                    audio.play('success'); el.classList.add('found');
+                    this.spawnFloat("+10", el, "#4ade80");
+                    this.state.score += 10; this.state.correct++;
+                    
+                    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    label.setAttribute("class", "map-label");
+                    label.setAttribute("x", 0); label.setAttribute("y", -18);
+                    label.textContent = data.name.split(' ')[0];
+                    el.appendChild(label);
+
+                    this.state.remaining = this.state.remaining.filter(x => x.name !== data.name);
+                    setTimeout(() => this.showInfo(data), 500);
+                } else {
+                    audio.play('error');
+                    this.state.score = Math.max(0, this.state.score - 5); this.state.wrong++;
+                    this.spawnFloat("-5", el, "#f87171");
+                    
+                    // YENİ: CSS class ile shake (uçma sorununu çözer)
+                    el.classList.add('shake');
+                    setTimeout(() => el.classList.remove('shake'), 400);
+                }
+                this.updateUI();
+            },
+
+            hint: function() {
+                if(!this.state.active) return;
+                audio.play('click');
+                const targetObj = deltaData.find(d => d.name === this.state.current.name);
+                if(targetObj && targetObj.el) {
+                    this.state.score = Math.max(0, this.state.score - 5); this.updateUI();
+                    
+                    // İpucu animasyonunu da CSS class ile yönetelim
+                    const shape = targetObj.el.querySelector('.marker-shape');
+                    // Basit bir flash efekti (manuel JS ile güvenli)
+                    const orig = shape.getAttribute("fill");
+                    let c = 0;
+                    const f = setInterval(() => {
+                        shape.setAttribute("fill", c%2===0 ? "white" : orig);
+                        // Scale yerine opacity oynayalım, scale bazen transform'u bozuyor
+                        shape.style.opacity = c%2===0 ? "0.5" : "1";
+                        c++; if(c>5) { 
+                            clearInterval(f); 
+                            shape.setAttribute("fill", orig); 
+                            shape.style.opacity = "1";
+                        }
+                    }, 200);
+                }
+            },
+
+            spawnFloat: function(text, svgEl, color) {
+                const rect = svgEl.getBoundingClientRect();
+                const f = document.createElement('div');
+                f.className = 'feedback-float'; f.innerText = text; f.style.color = color;
+                f.style.left = (rect.left + rect.width/2 - 20) + 'px'; f.style.top = rect.top + 'px';
+                document.body.appendChild(f); setTimeout(() => f.remove(), 800);
+            },
+
+            showInfo: function(data) {
+                clearInterval(this.state.interval);
+                document.getElementById('info-title').innerText = data.name;
+                document.getElementById('info-desc').innerText = data.desc;
+                const b = document.getElementById('info-region');
+                b.innerText = data.region.toUpperCase();
+                if(data.region === 'karadeniz') b.className = "region-badge bg-green-500/20 text-green-400 border-green-500/30";
+                else if(data.region === 'akdeniz') b.className = "region-badge bg-red-500/20 text-red-400 border-red-500/30";
+                else b.className = "region-badge bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+                document.getElementById('info-modal').classList.add('open');
+                confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 }, colors: ['#4ade80', '#38bdf8'] });
+            },
+
+            closeInfo: function() {
+                document.getElementById('info-modal').classList.remove('open');
+                this.state.interval = setInterval(() => {
+                    this.state.timer++;
+                    const m = Math.floor(this.state.timer/60).toString().padStart(2,'0');
+                    const s = (this.state.timer%60).toString().padStart(2,'0');
+                    const t = document.getElementById('timer'); if(t) t.innerText = `${m}:${s}`;
+                }, 1000);
+                this.nextQuestion();
+            },
+
+            endGame: function() {
+                clearInterval(this.state.interval); audio.play('success');
+                document.getElementById('end-score').innerText = this.state.score;
+                const total = this.state.correct + this.state.wrong;
+                const acc = total === 0 ? 0 : Math.round((this.state.correct / total) * 100);
+                document.getElementById('end-accuracy').innerText = `%${acc}`;
+                document.getElementById('end-modal').classList.add('open');
+                confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+            },
+
+            updateUI: function() { const s = document.getElementById('score'); if(s) s.innerText = this.state.score; },
+            toggleAudio: function() {
+                audio.muted = !audio.muted;
+                const i = document.querySelector('.sound-icon');
+                if(i) {
+                    if(audio.muted) { i.setAttribute('data-lucide', 'volume-x'); i.classList.add('text-red-400'); }
+                    else { i.setAttribute('data-lucide', 'volume-2'); i.classList.remove('text-red-400'); }
+                    if(window.lucide) lucide.createIcons();
+                }
+            }
+        };
+
+        window.onload = function() { game.init(); };
+    </script>
+</body>
+</html>
