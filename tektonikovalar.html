@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
     <title>Türkiye Tektonik Ovaları - Coğrafya Oyunları</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -985,6 +987,12 @@
                 menu.classList.add('open'); menuIcon.classList.add('hidden'); closeIcon.classList.remove('hidden');
             }
         };
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
 
         game.init();
     </script>
