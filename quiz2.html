@@ -693,7 +693,19 @@
                     let rLocs = rawData[rKey];
                     
                     let correctLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0,4);
-                    let wrongLocs = allLocs.filter(l => !rLocs.includes(l));
+                    
+                    // Kafa karışıklığını önlemek için doğru şıkların ana şehir isimlerini al (Örn: "Konya (Seydişehir)" -> "Konya")
+                    let rBaseCities = rLocs.map(l => l.split(' (')[0].trim());
+                    
+                    let wrongLocs = allLocs.filter(l => {
+                        let baseCity = l.split(' (')[0].trim();
+                        // Yanlış seçeneğin şehri, o madenin çıktığı hiçbir şehirle aynı OLMASIN (Örn: "Kütahya (Emet)" varken "Kütahya (Tavşanlı)" gelmesin)
+                        return !rLocs.includes(l) && !rBaseCities.includes(baseCity);
+                    });
+                    
+                    // Olağanüstü bir durumda wrongLocs boş dönerse fallback yap (100+ lokasyonla pek olası değil)
+                    if(wrongLocs.length === 0) wrongLocs = allLocs.filter(l => !rLocs.includes(l));
+                    
                     let wrongLoc = wrongLocs[Math.floor(Math.random() * wrongLocs.length)];
                     
                     let combinedLocs = [...correctLocs, wrongLoc].sort(()=>0.5-Math.random());
@@ -724,12 +736,14 @@
                     let wrongRes = selectedRes[4]; // Haritada gösterilmeyen, yani sorunun cevabı
                     
                     let mapMarkers = [];
-                    let usedLocs = new Set();
+                    let usedBaseCities = new Set();
                     
                     mapRes.forEach((rK, idx) => {
-                        let locs = rawData[rK];
-                        let loc = locs.find(l => !usedLocs.has(l)) || locs[0];
-                        usedLocs.add(loc);
+                        let locs = rawData[rK].sort(() => 0.5 - Math.random());
+                        // Haritada kargaşa olmasın diye her maden için farklı bir ilden nokta seçiyoruz
+                        let loc = locs.find(l => !usedBaseCities.has(l.split(' (')[0].trim())) || locs[0];
+                        usedBaseCities.add(loc.split(' (')[0].trim());
+                        
                         mapMarkers.push({
                             letter: String.fromCharCode(65+idx),
                             coords: this.getCoordsSafely(loc)
