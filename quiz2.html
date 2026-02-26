@@ -518,116 +518,111 @@
 <script>
     const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
 
-    // Genişletilmiş Koordinat Listesi
+    // Genişletilmiş Koordinat Listesi - Yeni veritabanına uyumlu hale getirildi
     const baseCoords = {
-        "Bandırma": [27.97, 40.35], "Emet": [29.25, 39.34], "Bursa": [29.06, 40.18], "Eskişehir": [30.52, 39.77], "Kütahya": [29.98, 39.42],
-        "Balıkesir": [27.88, 39.64], "Balıkesir - Eymir": [27.7, 39.5], "İzmir - Torbalı": [27.35, 38.15], "Kayseri - Faraşa": [35.5, 38.0],
-        "Sivas - Divriği": [38.11, 39.37], "Malatya - Hasançelebi": [37.9, 38.8], "Malatya - Hekimhan": [37.93, 38.82], "Niğde": [34.67, 37.96],
-        "Adana": [35.32, 37.00], "Sakarya - Çamdağı": [30.4, 40.7], "Bingöl": [40.49, 38.88], "Hatay": [36.16, 36.20],
-        "Elazığ - Guleman": [39.8, 38.5], "Bursa - Harmancık": [29.1, 39.7], "Muğla - Fethiye": [29.11, 36.62], "Muğla - Köyceğiz": [28.69, 36.96],
-        "Muğla - Dalaman": [28.8, 36.76], "Bayburt - Kop Dağı": [40.2, 40.0], "Eskişehir - Mihalıççık": [31.4, 39.8],
-        "Elazığ - Maden": [39.6, 38.3], "Diyarbakır": [40.23, 37.91], "Artvin - Murgul": [41.5, 41.2], "Kastamonu - Küre": [33.7, 41.8],
-        "Samsun": [36.33, 41.28], "Rize - Çayeli": [40.7, 41.0],
-        "Konya - Seydişehir": [31.8, 37.4], "Antalya - Akseki": [31.7, 37.0], "Zonguldak - Kokaksu": [31.7, 41.4], "Hatay - Payas": [36.2, 36.7],
-        "İzmir - Bergama": [27.1, 39.1], "İzmir - Efemçukuru": [26.9, 38.2], "Uşak": [29.4, 38.6], "Gümüşhane": [39.4, 40.4], "Artvin - Cerattepe": [41.8, 41.1],
-        "Erzincan": [39.5, 39.7], "Zonguldak": [31.79, 41.45], "Kastamonu": [33.77, 41.37], "Denizli - Tavas": [29.0, 37.5], "Burdur": [30.2, 37.7],
-        "Adana - Ceyhan": [35.8, 37.0], "Artvin - Borçka": [41.6, 41.3],
-        "Manisa - Demirci": [28.3, 39.0], "Bilecik - Söğüt": [30.1, 40.0], "Muğla - Milas": [27.7, 37.3], "Kütahya - Simav": [28.9, 39.0], "Aydın - Çine": [28.0, 37.6],
-        "Alanya": [31.9, 36.5], "Elbistan": [37.1, 38.2], "Çanakkale": [26.4, 40.1], "Giresun": [38.3, 40.9], "Muş": [41.4, 38.7],
-        "İzmir - Çamaltı": [26.9, 38.4], "Tuz Gölü": [33.3, 38.8], "Çankırı": [33.6, 40.6], "Yozgat - Yerköy": [34.4, 39.6], "Nevşehir - Gülşehir": [34.6, 38.7], "Iğdır - Tuzluca": [43.6, 40.0],
-        "Van": [43.3, 38.5], "Erzurum": [41.2, 39.9], "Nevşehir": [34.7, 38.6], "Manisa": [27.4, 38.6],
-        "Mardin - Mazıdağı": [40.4, 37.5], "Adıyaman": [38.2, 37.7], "Isparta - Keçiborlu": [30.3, 37.9], "Muğla": [28.3, 37.2],
-        "Kayseri": [35.4, 38.7], "Yozgat": [34.8, 39.8], "İzmir - Karaburun": [26.5, 38.6], "Konya - Sarayönü": [32.4, 38.2],
-        "Elazığ - Keban": [38.7, 38.7], "Bursa - Uludağ": [29.2, 40.0], "Kırıkkale - Keskin": [33.6, 39.6],
-        "İzmir": [27.1, 38.4], "Hatay - İskenderun": [36.1, 36.5], "Sivas": [37.0, 39.7], "Ankara - Beypazarı": [31.9, 40.1], "Aydın": [27.8, 37.8],
-        "Edirne - Enez": [26.0, 40.7], "Ordu": [37.8, 40.9], "Tokat": [36.5, 40.3], "Aydın - Koçarlı": [27.7, 37.7], "Çanakkale - Ayvacık": [26.4, 39.6],
-        "Tekirdağ - Hayrabolu": [27.1, 41.2], "Mardin - Çamurlu": [40.7, 37.3], "Kırklareli - Hamitabat": [27.3, 41.4], "Düzce - Akçakoca": [31.1, 41.0],
-        "Ovaakça": [29.0, 40.3], "Aliağa": [26.9, 38.8], "Hamitabat": [27.3, 41.4], "Ambarlı": [28.6, 40.9], "Gebze": [29.4, 40.8],
-        "Çanakkale - Çan": [27.0, 40.0], "Manisa - Soma": [27.6, 39.1], "Muğla - Kemerköy": [27.9, 37.0], "Muğla - Yatağan": [28.1, 37.3],
-        "Kütahya - Değirmisaz": [29.5, 39.5], "Kütahya - Tunçbilek": [29.4, 39.6], "Kütahya - Tavşanlı": [29.4, 39.5], "Kütahya - Seyitömer": [29.8, 39.5],
-        "Sivas - Kangal": [37.2, 39.2], "Kahramanmaraş - Afşin Elbistan": [37.0, 38.2], "Bursa - Orhaneli": [28.9, 39.9],
-        "Batman": [41.1, 37.8], "Kırıkkale - Orta Anadolu": [33.5, 39.8], "İzmit - Tüpraş": [29.9, 40.7], "İzmir - Aliağa": [26.9, 38.8], "Mersin - Ataş": [34.6, 36.8],
-        "İzmir - Alaçatı": [26.3, 38.2], "Zonguldak - Çatalağzı": [31.8, 41.5], "Denizli - Kızıldere": [28.8, 37.9], "Aydın - Germencik": [27.6, 37.8], "Afyon": [30.5, 38.7],
-        "Konya": [32.48, 37.86], "Elazığ": [39.22, 38.68]
+        "Konya": [32.5, 37.8], "Konya (Seydişehir)": [31.8, 37.4],
+        "Zonguldak": [31.8, 41.4], "Zonguldak (Kokaksu)": [31.7, 41.4], "Zonguldak (Ereğli)": [31.4, 41.3], "Zonguldak (Çatalağzı Termik Santrali)": [31.8, 41.5],
+        "Antalya": [30.7, 36.9], "Antalya (Akseki)": [31.7, 37.0], "Antalya (Alanya, Gazipaşa)": [32.1, 36.4],
+        "Hatay": [36.2, 36.2], "Hatay (Payas)": [36.2, 36.7], "Hatay (İskenderun)": [36.1, 36.5], "Hatay-Osmaniye Hattı": [36.2, 36.8],
+        "Muğla": [28.3, 37.2], "Muğla (Milas)": [27.7, 37.3], "Muğla (Fethiye, Milas)": [28.5, 37.0], "Muğla (Yatağan)": [28.1, 37.3],
+        "Elazığ": [39.2, 38.6], "Elazığ (Guleman)": [39.8, 38.5], "Elazığ (Maden)": [39.6, 38.3],
+        "Sivas": [37.0, 39.7], "Sivas (Divriği)": [38.11, 39.37],
+        "Erzincan": [39.5, 39.7], "Erzincan (Kopdağı)": [39.8, 39.9], "Erzincan (İliç)": [38.5, 39.4],
+        "Bayburt": [40.2, 40.2],
+        "Bursa": [29.0, 40.2], "Bursa (Orhaneli)": [28.9, 39.9], "Bursa (Uludağ)": [29.2, 40.0], "Bursa (Ovaakça)": [29.0, 40.3],
+        "Eskişehir": [30.5, 39.7], "Eskişehir (Mihalıççık)": [31.4, 39.8], "Eskişehir (Sivrihisar)": [31.5, 39.4],
+        "Adana": [35.3, 37.0], "Adana (Aladağ)": [35.4, 37.6], "Adana (Feke, Mansurlu)": [35.9, 37.8], "Adana (Sugözü Termik Santrali)": [35.8, 36.8],
+        "Kayseri": [35.4, 38.7], "Kayseri (Pınarbaşı)": [36.0, 38.7],
+        "Bingöl": [40.5, 38.8], "Bingöl (Avnik)": [40.49, 38.88],
+        "Malatya": [38.3, 38.3], "Malatya (Hekimhan)": [37.93, 38.82],
+        "Kırıkkale": [33.5, 39.8], "Kırıkkale (Kesikköprü)": [33.5, 39.6],
+        "Sakarya": [30.4, 40.7], "Sakarya (Çamdağı)": [30.4, 40.7],
+        "İzmir": [27.1, 38.4], "İzmir (Torbalı)": [27.35, 38.15], "İzmir (Bergama, Efemçukuru)": [27.1, 39.0], "İzmir (Aliağa)": [26.9, 38.8], "İzmir (Alaçatı - İlk Santral)": [26.3, 38.2],
+        "Balıkesir": [27.8, 39.6], "Balıkesir (Havran)": [27.1, 39.5], "Balıkesir (Bigadiç)": [28.1, 39.3], "Balıkesir (Kazdağları)": [26.9, 39.7], "Balıkesir (Marmara Adası)": [27.6, 40.6], "Balıkesir (Bandırma)": [27.9, 40.3],
+        "Kastamonu": [33.7, 41.3], "Kastamonu (Küre)": [33.7, 41.8],
+        "Artvin": [41.8, 41.1], "Artvin (Murgul)": [41.5, 41.2], "Artvin (Cerattepe)": [41.8, 41.1],
+        "Rize": [40.5, 41.0], "Rize (Çayeli)": [40.7, 41.0],
+        "Diyarbakır": [40.2, 37.9], "Diyarbakır (Ergani)": [39.7, 38.2],
+        "Kütahya": [29.9, 39.4], "Kütahya (Tavşanlı)": [29.4, 39.5],
+        "Gümüşhane": [39.4, 40.4], "Gümüşhane (Mastra)": [39.4, 40.4],
+        "Uşak": [29.4, 38.6], "Uşak (Kışladağ)": [29.1, 38.4],
+        "Mardin": [40.7, 37.3], "Mardin (Mazıdağı)": [40.4, 37.5],
+        "Ankara": [32.8, 39.9], "Ankara (Beypazarı)": [31.9, 40.1], "Ankara (Çayırhan)": [31.6, 40.1],
+        "Erzurum": [41.2, 39.9], "Erzurum (Oltu)": [41.9, 40.5],
+        "Aydın": [27.8, 37.8], "Aydın (Buharkent)": [28.7, 37.9],
+        "Şırnak": [42.4, 37.5], "Şırnak (Silopi Termik Santrali)": [42.4, 37.2],
+        "Kahramanmaraş": [36.9, 37.5], "Kahramanmaraş (Elbistan)": [37.1, 38.2],
+        "Manisa": [27.4, 38.6], "Manisa (Soma)": [27.6, 39.1],
+        "Çanakkale": [26.4, 40.1], "Çanakkale (Çan)": [27.0, 40.0],
+        "Kırklareli": [27.2, 41.7], "Kırklareli (Hamitabat)": [27.3, 41.4],
+        "İstanbul": [28.9, 41.0], "İstanbul (Ambarlı)": [28.6, 40.9], "İstanbul-Tekirdağ Hattı": [27.8, 41.0],
+        "İzmit": [29.9, 40.7],
+        "Mersin": [34.6, 36.8], "Mersin (Sadece Depolama)": [34.6, 36.8],
+        "Denizli": [29.0, 37.7], "Denizli (Sarayköy - İlk Santral)": [28.9, 37.9],
+        "Afyonkarahisar": [30.5, 38.7],
+        "Fırat Nehri": [38.5, 38.2],
+        "Kızılırmak": [33.5, 39.2],
+        "Batman": [41.1, 37.8],
+        "Batı Kıyıları": [26.5, 38.5],
+        "Akdeniz Kıyıları": [33.0, 36.5],
+        "Şanlıurfa (Birecik - İlk Güneş Tarlası)": [37.9, 37.0],
+        "Karabük": [32.6, 41.2],
+        "Samsun": [36.3, 41.2]
     };
 
+    // Tüm yeni verilerin birleştiği tek kaynak liste
     const rawData = {
-      "madenler": {
-        "bor": ["Bandırma", "Emet", "Bursa", "Eskişehir", "Kütahya"],
-        "demir": ["Balıkesir - Eymir", "İzmir - Torbalı", "Kayseri - Faraşa", "Sivas - Divriği", "Malatya - Hasançelebi", "Malatya - Hekimhan", "Niğde", "Adana", "Sakarya - Çamdağı", "Bingöl", "Hatay"],
-        "krom": ["Elazığ - Guleman", "Bursa - Harmancık", "Muğla - Fethiye", "Muğla - Köyceğiz", "Muğla - Dalaman", "Bayburt - Kop Dağı", "Eskişehir - Mihalıççık"],
-        "bakır": ["Elazığ - Maden", "Diyarbakır", "Artvin - Murgul", "Kastamonu - Küre", "Samsun", "Rize - Çayeli"],
-        "boksit": ["Konya - Seydişehir", "Antalya - Akseki", "Zonguldak - Kokaksu", "Hatay - Payas"],
-        "altın": ["İzmir - Bergama", "İzmir - Efemçukuru", "Uşak", "Gümüşhane", "Artvin - Cerattepe"],
-        "manyezit": ["Bursa", "Kütahya", "Eskişehir", "Konya", "Erzincan"],
-        "manganez": ["Zonguldak", "Kastamonu", "Denizli - Tavas", "Burdur", "Adana - Ceyhan", "Artvin - Borçka", "Balıkesir"],
-        "feldispat": ["Manisa - Demirci", "Bilecik - Söğüt", "Muğla - Milas", "Kütahya - Simav", "Aydın - Çine"],
-        "barit": ["Alanya", "Elbistan", "Çanakkale", "Eskişehir", "Giresun", "Muş"],
-        "tuz": ["İzmir - Çamaltı", "Tuz Gölü", "Çankırı", "Yozgat - Yerköy", "Nevşehir - Gülşehir", "Iğdır - Tuzluca"],
-        "perlit": ["Van", "Erzincan", "İzmir", "Erzurum", "Nevşehir", "Çanakkale", "Manisa", "Çankırı"],
-        "lule_tasi": ["Eskişehir"], 
-        "oltu_tasi": ["Erzurum"],
-        "fosfat": ["Mardin - Mazıdağı", "Bingöl", "Adıyaman"],
-        "kükürt": ["Kütahya", "Isparta - Keçiborlu", "Muğla"],
-        "kursun_cinko": ["Elazığ", "Kayseri", "Çanakkale", "Yozgat", "Giresun"],
-        "civa": ["İzmir - Karaburun", "Konya - Sarayönü", "Niğde"],
-        "volfram_tungsten": ["Elazığ - Keban", "Bursa - Uludağ", "Kırıkkale - Keskin"],
-        "asbest": ["İzmir", "Bursa", "Hatay - İskenderun", "Sivas"],
-        "trona": ["Ankara - Beypazarı"], 
-        "zimpara_tasi": ["Aydın", "İzmir", "Muğla"],
-        "bentonit": ["Edirne - Enez", "Çanakkale", "Kütahya", "Manisa", "Ordu", "Tokat"],
-        "uranyum": ["Aydın - Koçarlı", "Çanakkale - Ayvacık", "Yozgat"], 
-        "toryum": ["Eskişehir"]
-      },
-      "enerji": {
-        "dogalgaz": ["Tekirdağ - Hayrabolu", "Mardin - Çamurlu", "Kırklareli - Hamitabat", "Düzce - Akçakoca"],
-        "dogalgaz_termik_santralleri": ["Ovaakça", "Bandırma", "Aliağa", "Hamitabat", "Ambarlı", "Gebze"],
-        "linyit_termik_santralleri": ["Çanakkale - Çan", "Manisa - Soma", "Muğla - Kemerköy", "Muğla - Yatağan", "Kütahya - Değirmisaz", "Kütahya - Tunçbilek", "Kütahya - Tavşanlı", "Kütahya - Seyitömer", "Sivas - Kangal", "Kahramanmaraş - Afşin Elbistan", "Bursa - Orhaneli"],
-        "petrol_rafineleri": ["Batman", "Kırıkkale - Orta Anadolu", "İzmit - Tüpraş", "İzmir - Aliağa", "Mersin - Ataş"],
-        "ruzgar_santralleri": ["İzmir - Alaçatı"], 
-        "taskomuru_santrali": ["Zonguldak - Çatalağzı"],
-        "jeotermal_santraller": ["Denizli - Kızıldere", "Aydın - Germencik", "Afyon", "Çanakkale"]
-      }
-    };
-
-    const nameMap = {
-        "bor": "Bor", "demir": "Demir", "krom": "Krom", "bakır": "Bakır", "boksit": "Boksit", "altın": "Altın", "manyezit": "Manyezit", "manganez": "Manganez", "feldispat": "Feldispat", "barit": "Barit", "tuz": "Tuz", "perlit": "Perlit", "kursun_cinko": "Kurşun & Çinko", "asbest": "Asbest", "bentonit": "Bentonit", "lule_tasi": "Lületaşı", "oltu_tasi": "Oltutaşı", "fosfat": "Fosfat", "kükürt": "Kükürt", "civa": "Cıva", "volfram_tungsten": "Volfram (Tungsten)", "trona": "Trona", "zimpara_tasi": "Zımpara Taşı", "uranyum": "Uranyum", "toryum": "Toryum",
-        "dogalgaz": "Doğalgaz", "dogalgaz_termik_santralleri": "Doğalgaz Santrali", "linyit_termik_santralleri": "Linyit Santrali", "petrol_rafineleri": "Petrol Rafinerisi", "jeotermal_santraller": "Jeotermal Santral", "ruzgar_santralleri": "Rüzgar Santrali", "taskomuru_santrali": "Taşkömürü Santrali"
+        "Boksit (Alüminyum)": ["Konya (Seydişehir)", "Zonguldak (Kokaksu)", "Antalya (Akseki)", "Hatay (Payas)", "Muğla (Milas)"],
+        "Krom": ["Elazığ (Guleman)", "Sivas", "Erzincan (Kopdağı)", "Bayburt", "Muğla (Fethiye, Milas)", "Bursa (Orhaneli)", "Eskişehir (Mihalıççık)", "Adana (Aladağ)", "Hatay (İskenderun)", "Kayseri (Pınarbaşı)"],
+        "Demir": ["Sivas (Divriği)", "Bingöl (Avnik)", "Malatya (Hekimhan)", "Adana (Feke, Mansurlu)", "Hatay (Payas)", "Kırıkkale (Kesikköprü)", "Sakarya (Çamdağı)", "İzmir (Torbalı)", "Balıkesir (Havran)"],
+        "Bakır": ["Kastamonu (Küre)", "Artvin (Murgul)", "Rize (Çayeli)", "Elazığ (Maden)", "Diyarbakır (Ergani)"],
+        "Bor Mineralleri": ["Balıkesir (Bigadiç)", "Bursa", "Kütahya", "Eskişehir"],
+        "Altın": ["Artvin (Cerattepe)", "Gümüşhane (Mastra)", "Erzincan (İliç)", "Balıkesir (Kazdağları)", "İzmir (Bergama, Efemçukuru)", "Uşak (Kışladağ)"],
+        "Fosfat": ["Mardin (Mazıdağı)"],
+        "Mermer": ["Balıkesir (Marmara Adası)"],
+        "Wolfram (Tungsten)": ["Bursa (Uludağ)"],
+        "Toryum": ["Eskişehir (Sivrihisar)"],
+        "Trona": ["Ankara (Beypazarı)"],
+        "Barit": ["Antalya (Alanya, Gazipaşa)"],
+        "Oltu Taşı": ["Erzurum (Oltu)"],
+        "Lületaşı": ["Eskişehir"],
+        "Zımpara Taşı": ["İzmir", "Aydın", "Muğla"],
+        "Asfaltit": ["Şırnak (Silopi Termik Santrali)"],
+        "Linyit": ["Kahramanmaraş (Elbistan)", "Muğla (Yatağan)", "Manisa (Soma)", "Çanakkale (Çan)", "Ankara (Çayırhan)", "Kütahya (Tavşanlı)"],
+        "Doğalgaz": ["Kırklareli (Hamitabat)", "Balıkesir (Bandırma)", "Bursa (Ovaakça)", "İstanbul (Ambarlı)"],
+        "Taş Kömürü": ["Zonguldak (Çatalağzı Termik Santrali)", "Adana (Sugözü Termik Santrali)"],
+        "Petrol": ["Batman", "İzmir (Aliağa)", "İzmit", "Kırıkkale"],
+        "Rüzgar Enerjisi": ["İzmir (Alaçatı - İlk Santral)", "Batı Kıyıları", "Akdeniz Kıyıları", "Hatay-Osmaniye Hattı", "İstanbul-Tekirdağ Hattı"],
+        "Güneş Enerjisi": ["Şanlıurfa (Birecik - İlk Güneş Tarlası)"],
+        "Jeotermal Enerji": ["Denizli (Sarayköy - İlk Santral)", "Aydın (Buharkent)", "Çanakkale", "İzmir", "Manisa", "Afyonkarahisar"],
+        "Hidroelektrik": ["Fırat Nehri", "Kızılırmak"]
     };
 
     const infoMap = {
-        "bor": "Türkiye dünya rezervlerinin %73'üne sahiptir. Balıkesir, Kütahya ve Eskişehir en önemli çıkarım alanlarıdır.",
-        "demir": "Ağır sanayinin temelidir. Sivas (Divriği) ve Malatya (Hekimhan) en verimli demir yataklarımızdır.",
-        "krom": "Paslanmaz çelik yapımında kullanılır. Elazığ (Guleman) ve Muğla çevresinde çokça çıkarılır.",
-        "bakır": "İletkenliği sebebiyle elektronikte kullanılır. Artvin (Murgul) ve Kastamonu (Küre) çok bilinir.",
-        "boksit": "Alüminyumun hammaddesidir. Konya (Seydişehir) ve Antalya (Akseki) bölgeleriyle özdeşleşmiştir.",
-        "altın": "İzmir (Bergama) ve Artvin (Cerattepe) yatakları oldukça verimlidir.",
-        "manyezit": "Ateşe dayanıklı tuğla yapımında kullanılır. İç Ege ve İç Anadolu'da yaygındır.",
-        "manganez": "Demir çelik sanayisinde çeliği sertleştirmek için kullanılır. Zonguldak ve Kastamonu çevresinde bulunur.",
-        "feldispat": "Cam ve seramik sanayisinde kullanılır. Ege Bölgesi'nde yoğunluktadır.",
-        "barit": "Sondaj çalışmalarında basıncı dengelemek için kullanılır. Antalya ve Kahramanmaraş öne çıkar.",
-        "tuz": "Göl (Tuz Gölü), deniz (İzmir Çamaltı) ve kaya tuzu (Çankırı, Yozgat) olarak elde edilir.",
-        "perlit": "İnşaat ve yalıtımda kullanılan volkanik bir camdır. Doğu Anadolu ve Ege'de çıkarılır.",
-        "kursun_cinko": "Genellikle bir arada bulunurlar. Elazığ (Keban) ve Kayseri önemli maden alanlarıdır.",
-        "asbest": "Isıya dayanıklı bir mineraldir. İzmir, Bursa ve Hatay civarında yatakları bulunur.",
-        "bentonit": "Döküm kumu ve kedi kumu yapımında sıkça kullanılan bir kil türüdür.",
-        "lule_tasi": "Süs eşyası ve pipo yapımında kullanılır. Dünyada en çok Eskişehir'de çıkarılır.",
-        "oltu_tasi": "Erzurum'un Oltu ilçesinde çıkarılan, takı ve tespih yapımında kullanılan değerli bir taştır.",
-        "fosfat": "Suni gübre yapımında kullanılır. Türkiye'de en önemli yatağı Mardin Mazıdağı'dır.",
-        "kükürt": "Kimya sanayisinde ve ilaçlamada kullanılır. Isparta Keçiborlu en bilinen yatağıdır.",
-        "civa": "Sıvı halde bulunan tek metaldir. İzmir (Karaburun) ve Konya (Sarayönü) civarında bulunur.",
-        "volfram_tungsten": "Çok sert ve ısıya dayanıklıdır. Bursa Uludağ en bilinen çıkarım alanıdır.",
-        "trona": "Doğal sodadır. Cam sanayisinde kullanılır. Ankara Beypazarı dünyadaki sayılı yataklardandır.",
-        "zimpara_tasi": "Aşındırıcı olarak kullanılır. Ege Bölgesi'nde (Aydın, İzmir, Muğla) yaygındır.",
-        "uranyum": "Nükleer enerji hammaddesidir. Yozgat ve Aydın (Koçarlı) civarında öne çıkar.",
-        "toryum": "Geleceğin nükleer yakıtı olarak görülür. Eskişehir yatakları dünyada önemli bir paya sahiptir.",
-        "dogalgaz": "Türkiye'de çıkarımı azdır. Trakya (Hamitabat) ve Düzce (Akçakoca) en bilinen çıkarım yerleridir.",
-        "dogalgaz_termik_santralleri": "Doğalgaz ile elektrik üreten santrallerimizdir. Hamitabat, Ovaakça ve Ambarlı büyüklerdendir.",
-        "linyit_termik_santralleri": "Linyitle çalışan elektrik santralleridir. Afşin Elbistan, Soma ve Yatağan en büyükleridir.",
-        "petrol_rafineleri": "Ham petrolün işlendiği tesislerdir. Batman (yerli petrol), Tüpraş (İzmit) ve Aliağa (İzmir) bulunur.",
-        "jeotermal_santraller": "Sıcak su buharıyla elektrik üretilir. Ege Bölgesi (Denizli - Kızıldere, Aydın - Germencik) merkezidir.",
-        "ruzgar_santralleri": "Rüzgar gücüyle temiz elektrik üretilir. Türkiye'de ilk ve en bilinenlerinden biri İzmir Alaçatı'dır.",
-        "taskomuru_santrali": "Taşkömürünün yüksek enerjisiyle çalışan termik santraldir. Zonguldak Çatalağzı en tipik örneğidir."
+        "Boksit (Alüminyum)": "Alüminyum hammaddesidir. Konya Seydişehir Türkiye'deki en önemli işleme tesisidir.",
+        "Krom": "Ferrokrom tesisleri Elazığ ve Antalya'da bulunur. Paslanmaz çelik üretiminde çok önemlidir.",
+        "Demir": "Ereğli, Karabük, İskenderun gibi ağır sanayinin temeli olan önemli demir-çelik tesislerinde işlenir.",
+        "Bakır": "Samsun, Murgul, Çayeli ve Elazığ tesislerinde işlenmektedir. İletkenliği yüksek bir madendir.",
+        "Bor Mineralleri": "Türkiye dünya rezervlerinin %73'üne sahiptir. Balıkesir, Kütahya ve Eskişehir en önemli alanlardır.",
+        "Altın": "İzmir (Bergama) ve Artvin (Cerattepe) yatakları oldukça verimlidir.",
+        "Fosfat": "Suni gübre yapımında kullanılır. Türkiye'deki en önemli rezerv alanı Mardin Mazıdağı'dır.",
+        "Mermer": "Türkiye mermer ihracatında dünya liderlerindendir. Balıkesir Marmara adası mermeriyle ünlüdür.",
+        "Wolfram (Tungsten)": "Çok sert ve ısıya dayanıklıdır. Bursa Uludağ en bilinen çıkarım alanıdır.",
+        "Toryum": "Geleceğin nükleer yakıtı olarak görülür. Eskişehir Sivrihisar yatakları dünyada önemli bir paya sahiptir.",
+        "Trona": "Doğal sodadır. Cam sanayisinde kullanılır. Ankara Beypazarı dünyadaki sayılı yataklardandır.",
+        "Barit": "Sondaj çalışmalarında basıncı dengelemek için kullanılır. Antalya ve Gazipaşa öne çıkar.",
+        "Oltu Taşı": "Erzurum'un Oltu ilçesinde çıkarılan, takı ve tespih yapımında kullanılan değerli bir taştır.",
+        "Lületaşı": "Süs eşyası ve pipo yapımında kullanılır. Dünyada en çok Eskişehir'de çıkarılır.",
+        "Zımpara Taşı": "Aşındırıcı olarak kullanılır. Ege Bölgesi'nde (Aydın, İzmir, Muğla) yaygındır.",
+        "Asfaltit": "Petrole benzeyen katı bir fosil yakıttır. Şırnak Silopi termik santralinde elektrik üretilir.",
+        "Linyit": "Türkiye'de yaygın bir fosil yakıttır. Elbistan ve Soma gibi büyük termik santraller bulunur.",
+        "Doğalgaz": "Türkiye'de çıkarımı azdır. Trakya (Hamitabat) ve Düzce (Akçakoca) en bilinen çıkarım yerleridir.",
+        "Taş Kömürü": "Zonguldak ve çevresinde çıkarılır, yüksek kalorilidir. Demir-çelik sanayisinde kullanılır.",
+        "Petrol": "İlk olarak Batman'da bulunmuştur. Aliağa, Tüpraş, Kırıkkale'de dev rafineriler vardır.",
+        "Rüzgar Enerjisi": "Türkiye'nin ilk rüzgar santrali İzmir Alaçatı'da kurulmuştur. Batı kıyıları çok verimlidir.",
+        "Güneş Enerjisi": "Şanlıurfa Birecik Türkiye'nin ilk güneş tarlasıdır. Karadeniz hariç potansiyeli çok yüksektir.",
+        "Jeotermal Enerji": "Denizli Sarayköy ve Aydın Buharkent Türkiye'nin ilk ve en önemli santrallerindendir.",
+        "Hidroelektrik": "Fırat Nehri (Keban, Atatürk) ve Kızılırmak (Hirfanlı) en büyük potansiyele sahip akarsularımızdır."
     };
 
     const audioController = {
@@ -657,14 +652,15 @@
         svg: null, geoBounds: { minLon: 25.5, maxLon: 44.5, minLat: 35.5, maxLat: 42.5 }, 
         viewBox: { w: 1000, h: 450 }, scale: 1, offsetX: 0, offsetY: 0,
 
-        // Koordinatlara ufacık sarsma(jitter) ekleyip markerların tamamen üst üste binmesini önleriz.
+        // Koordinatlara ufak bir sapma (jitter) ekler ki markerlar üst üste tam yapışmasın.
         getCoordsSafely: function(locName) {
             let coords = baseCoords[locName];
             if (!coords) {
-                let city = locName.split(' - ')[0].trim();
+                // İsmin içinden ili ayıklayıp tekrar deneme
+                let city = locName.split(' (')[0].trim();
                 coords = baseCoords[city] || [35.0, 39.0]; 
             }
-            return [coords[0] + (Math.random()-0.5)*0.1, coords[1] + (Math.random()-0.5)*0.1];
+            return [coords[0] + (Math.random()-0.5)*0.15, coords[1] + (Math.random()-0.5)*0.15];
         },
 
         init: function() {
@@ -677,20 +673,24 @@
 
         generateQuestions: function() {
             const questionsArr = [];
-            const resKeys = Object.keys(nameMap);
+            const resKeys = Object.keys(rawData);
 
             for (let i = 0; i < 10; i++) {
-                // 1: Dışarıda kalan Merkez, 2: Dışarıda kalan Maden, 3: Ortak Maden Bulma
+                // 1: Dışarıda kalan Merkez (TİP 1), 2: Dışarıda kalan Maden (TİP 2), 3: Ortak Maden (TİP 3)
                 let type = Math.floor(Math.random() * 3) + 1; 
                 
-                let pool4 = resKeys.filter(k => (rawData.madenler[k] || rawData.enerji[k]).length >= 4);
-                let pool3 = resKeys.filter(k => (rawData.madenler[k] || rawData.enerji[k]).length >= 3);
-                let allLocs = Object.keys(baseCoords);
+                // Belirli havuzlar
+                let pool4 = resKeys.filter(k => rawData[k].length >= 4);
+                let pool3 = resKeys.filter(k => rawData[k].length >= 3);
+                
+                // Haritada gösterebileceğimiz tüm geçerli lokasyonları topla
+                let allLocsArr = [].concat(...Object.values(rawData));
+                let allLocs = [...new Set(allLocsArr)]; // Benzersizler
 
-                if (type === 1) { 
-                    // TİP 1: Dışarıda Kalan Merkez (Odd Location Out)
+                if (type === 1 && pool4.length > 0) { 
+                    // TİP 1: Dışarıda Kalan Merkez (Örn: Bu maden hangisinde yoktur?)
                     let rKey = pool4[Math.floor(Math.random() * pool4.length)];
-                    let rLocs = rawData.madenler[rKey] || rawData.enerji[rKey];
+                    let rLocs = rawData[rKey];
                     
                     let correctLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0,4);
                     let wrongLocs = allLocs.filter(l => !rLocs.includes(l));
@@ -707,27 +707,27 @@
 
                     questionsArr.push({
                         type: 1,
-                        badge: "Yer Eşleştirme",
-                        text: `Aşağıdaki haritada beş farklı merkez işaretlenmiştir. Bu merkezlerden dördü <strong>${nameMap[rKey]}</strong> yataklarını göstermektedir. Buna göre, hangi merkez <strong>dışarıda kalır</strong>?`,
+                        badge: "Yer Eşleştirme (Analiz)",
+                        text: `Aşağıdaki haritada işaretli beş merkezden dördü <strong>${rKey}</strong> rezervi veya üretim tesisidir. Buna göre, hangi merkez <strong>dışarıda kalır</strong>?`,
                         options: options,
-                        mapMarkers: options, // 5 harfli marker
-                        feedbackDesc: `<strong>${wrongLoc}</strong> merkezinde ${nameMap[rKey]} bulunmaz. Diğerleri ise çıkarım alanıdır.`,
-                        info: infoMap[rKey] || ""
+                        mapMarkers: options, 
+                        feedbackDesc: `<strong>${wrongLoc}</strong> bölgesinde ${rKey} bulunmaz. Diğer seçenekler ise bilinen çıkarım/kullanım alanlarıdır.`,
+                        info: infoMap[rKey] || "Önemli kaynaklarımızdan biridir."
                     });
 
                 } else if (type === 2) { 
-                    // TİP 2: Dışarıda Kalan Maden (Odd Resource Out)
+                    // TİP 2: Dışarıda Kalan Maden (Örn: Haritada hangisi işaretlenmemiştir?)
                     let shuffledRes = [...resKeys].sort(()=>0.5-Math.random());
                     let selectedRes = shuffledRes.slice(0, 5); 
                     
-                    let mapRes = selectedRes.slice(0, 4); // 4 tanesi haritada gösterilecek
-                    let wrongRes = selectedRes[4]; // 1 tanesi haritada hiç olmayacak
+                    let mapRes = selectedRes.slice(0, 4); // Haritada yeri gösterilecek 4 maden
+                    let wrongRes = selectedRes[4]; // Haritada gösterilmeyen, yani sorunun cevabı
                     
                     let mapMarkers = [];
                     let usedLocs = new Set();
                     
                     mapRes.forEach((rK, idx) => {
-                        let locs = rawData.madenler[rK] || rawData.enerji[rK];
+                        let locs = rawData[rK];
                         let loc = locs.find(l => !usedLocs.has(l)) || locs[0];
                         usedLocs.add(loc);
                         mapMarkers.push({
@@ -738,47 +738,47 @@
                     
                     let options = selectedRes.sort(()=>0.5-Math.random()).map((rK, idx) => ({
                         letter: String.fromCharCode(65+idx),
-                        text: nameMap[rK],
-                        isCorrect: rK === wrongRes // Haritada olmayan madeni arıyoruz
+                        text: rK,
+                        isCorrect: rK === wrongRes // Haritada olmayan kaynağı arıyoruz
                     }));
 
                     questionsArr.push({
                         type: 2,
-                        badge: "Maden Eşleştirme",
-                        text: `Haritada işaretli dört merkez ile aşağıdaki yeraltı kaynakları eşleştirildiğinde, hangisi <strong>dışarıda kalır</strong>?`,
+                        badge: "Kaynak Eşleştirme",
+                        text: `Haritada işaretli dört merkez ile aşağıdaki yeraltı ve enerji kaynakları eşleştirildiğinde, hangisi <strong>dışarıda kalır</strong>?`,
                         options: options,
-                        mapMarkers: mapMarkers, // 4 harfli marker
-                        feedbackDesc: `Haritada <strong>${nameMap[wrongRes]}</strong> kaynağına ait bir merkez verilmemiştir.`,
-                        info: infoMap[wrongRes] || ""
+                        mapMarkers: mapMarkers, 
+                        feedbackDesc: `Haritada <strong>${wrongRes}</strong> kaynağına ait bir üretim merkezi verilmemiştir.`,
+                        info: infoMap[wrongRes] || "Türkiye'nin yeraltı zenginliklerindendir."
                     });
 
                 } else { 
-                    // TİP 3: Ortak Maden (Common Feature)
+                    // TİP 3: Ortak Maden Bulma
                     let rKey = pool3[Math.floor(Math.random() * pool3.length)];
-                    let rLocs = rawData.madenler[rKey] || rawData.enerji[rKey];
+                    let rLocs = rawData[rKey];
                     
-                    let showLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0, 4);
+                    let showLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0, Math.min(4, rLocs.length));
                     
                     let mapMarkers = showLocs.map(loc => ({
-                        letter: '', // Sadece nokta
+                        letter: '', // Harf yok, sadece nokta (Radar)
                         coords: this.getCoordsSafely(loc)
                     }));
                     
                     let wrongRes = resKeys.filter(k => k !== rKey).sort(()=>0.5-Math.random()).slice(0, 4);
                     let options = [rKey, ...wrongRes].sort(()=>0.5-Math.random()).map((k, idx) => ({
                         letter: String.fromCharCode(65+idx),
-                        text: nameMap[k],
-                        isCorrect: k === rKey // Doğru madeni bul
+                        text: k,
+                        isCorrect: k === rKey // Doğru kaynağı bul
                     }));
 
                     questionsArr.push({
                         type: 3,
                         badge: "Ortak Özellik Analizi",
-                        text: `Yukarıdaki haritada başlıca çıkarım alanları gösterilen yeraltı kaynağı aşağıdakilerden hangisidir?`,
+                        text: `Yukarıdaki haritada başlıca kullanım ve çıkarım alanları gösterilen kaynak aşağıdakilerden hangisidir?`,
                         options: options,
-                        mapMarkers: mapMarkers, // Harfsiz sadece radar/nokta
-                        feedbackDesc: `Haritada işaretli alanların tamamı <strong>${nameMap[rKey]}</strong> yataklarını göstermektedir.`,
-                        info: infoMap[rKey] || ""
+                        mapMarkers: mapMarkers, 
+                        feedbackDesc: `Haritada işaretli alanların tamamı <strong>${rKey}</strong> yatakları veya tesislerini göstermektedir.`,
+                        info: infoMap[rKey] || "Bu kaynak Türkiye için büyük önem taşır."
                     });
                 }
             }
@@ -878,7 +878,7 @@
                 gInner.appendChild(pulse);
                 gInner.appendChild(circle);
 
-                if (mk.letter) { // Tip 1 ve Tip 2 (Harfler var)
+                if (mk.letter) { // Tip 1 ve Tip 2 (A, B, C, D harfleri var)
                     circle.setAttribute("r", "8"); 
                     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
                     text.setAttribute("class", "marker-text");
@@ -934,7 +934,7 @@
                 audioController.play('error');
                 btnElement.classList.add('wrong');
                 
-                // Doğru olanı yeşile boya
+                // Doğru olanı bulup yeşile boya
                 currentQuestion.options.forEach((opt, idx) => {
                     if (opt.isCorrect) {
                         buttons[idx].classList.add('correct');
