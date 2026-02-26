@@ -3,35 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Maden Nerede Bulunmaz? - Mobil Oyun</title>
+    <title>Maden Avı - Mobil Oyun</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Canvas Confetti -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <!-- Google Fonts: Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0f172a;
-            --bg-card: #1e293b;
-            --primary: #38bdf8;
+            /* Koyu Tema (Dark Mode) Ayarları */
+            --bg-main: #0b1120; 
+            --bg-surface: #1e293b; 
+            --bg-surface-hover: #2a3b52;
+            
+            /* Vurgular (Neon Efektleri) */
+            --primary: #38bdf8; 
+            --primary-light: rgba(56, 189, 248, 0.15);
+            --primary-gradient: linear-gradient(135deg, #38bdf8, #a855f7); 
+            
             --success: #10b981;
+            --success-light: rgba(16, 185, 129, 0.15);
+            
             --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+            
+            --warning: #facc15; 
+            --warning-light: rgba(250, 204, 21, 0.2);
+            
+            /* Metin Renkleri */
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --map-land: #334155;
-            --map-stroke: #475569;
+            
+            /* HARİTA STİLİ (Açık Renk - Koyu temadan ayrışması için) */
+            --map-land: #475569; 
+            --map-stroke: #cbd5e1; 
+            
+            /* UI Ayarları */
+            --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08); 
         }
 
         body {
             font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
+            background-color: var(--bg-main);
             color: var(--text-main);
-            overflow: hidden; /* Tam ekran mobil deneyimi için scrollu kapat */
+            overflow: hidden; 
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- Ambient Glow (Ortam Işığı) --- */
+        .ambient-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .blob-1 { width: 350px; height: 350px; background: rgba(56, 189, 248, 0.2); top: -100px; left: -100px; }
+        .blob-2 { width: 450px; height: 450px; background: rgba(168, 85, 247, 0.15); bottom: -150px; right: -100px; animation-delay: -5s; }
+        .blob-3 { width: 300px; height: 300px; background: rgba(16, 185, 129, 0.1); top: 30%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(30px, 50px) rotate(180deg); }
+            100% { transform: translate(-20px, 20px) rotate(360deg); }
         }
 
         /* Mobil Uygulama Çerçevesi */
@@ -39,69 +89,127 @@
             max-width: 480px;
             margin: 0 auto;
             height: 100vh;
-            height: 100dvh; /* iOS Safari fix */
+            height: 100dvh; 
             display: flex;
             flex-direction: column;
-            background-color: var(--bg-dark);
-            box-shadow: 0 0 40px rgba(0,0,0,0.5);
             position: relative;
+            z-index: 1;
+            background: linear-gradient(180deg, rgba(30,41,59,0.5) 0%, rgba(11,17,32,0) 100%);
         }
 
-        /* Header Bar */
+        /* Yüzen Koyu Header */
         .app-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 1rem 1.25rem;
-            background: rgba(15, 23, 42, 0.95);
-            border-bottom: 1px solid var(--bg-card);
+            margin: 1rem 1.25rem 0;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
             z-index: 10;
+        }
+
+        .question-counter {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+        .question-counter span { color: var(--primary); font-size: 1.1rem; }
+
+        .score-pill {
+            background: rgba(56, 189, 248, 0.1);
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 0.95rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
         }
 
         /* Soru Alanı */
         .question-area {
-            padding: 1.25rem;
+            padding: 1.5rem 1.25rem 1rem;
             text-align: center;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-        .question-title {
-            font-size: 1.1rem;
-            color: var(--text-muted);
+        .question-text {
+            font-size: 1.05rem;
             font-weight: 600;
-            margin-bottom: 0.25rem;
+            color: var(--text-muted);
+            margin-bottom: 0.35rem;
+        }
+        .question-highlight {
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-shadow: 0 2px 20px rgba(56, 189, 248, 0.3);
         }
         .resource-name {
+            font-family: 'Space Grotesk', sans-serif;
             font-size: 2.2rem;
             font-weight: 900;
-            color: var(--primary);
+            color: var(--text-main);
             text-transform: uppercase;
             line-height: 1.1;
+            letter-spacing: -0.02em;
+            margin-top: 0.15rem;
         }
 
-        /* Harita Alanı */
-        .map-container {
+        /* AÇIK RENKLİ HARİTA ALANI */
+        .map-wrapper {
+            padding: 0 1.25rem;
             flex-shrink: 0;
-            height: 28vh; /* Ekranın %28'i harita */
-            min-height: 180px;
+            margin-bottom: 1rem;
+        }
+        .map-container {
+            height: 25vh; 
+            min-height: 150px;
             width: 100%;
-            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
             position: relative;
-            pointer-events: none; /* Harita sadece görsel, tıklama yok */
-            border-top: 1px solid var(--bg-card);
-            border-bottom: 1px solid var(--bg-card);
+            pointer-events: none; 
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5), var(--shadow-sm);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .map-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(11,17,32,0.6) 100%);
+            pointer-events: none;
         }
 
         .province-path {
             fill: var(--map-land);
             stroke: var(--map-stroke);
-            stroke-width: 0.5px;
+            stroke-width: 0.6px;
             vector-effect: non-scaling-stroke;
+            transition: fill 0.3s;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
         }
 
         /* Şıklar / Butonlar Alanı */
         .options-container {
             flex-grow: 1;
-            padding: 1.25rem;
+            padding: 0 1.25rem 2rem;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -112,34 +220,41 @@
             display: flex;
             align-items: center;
             width: 100%;
-            background: var(--bg-card);
-            border: 2px solid transparent;
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 0.8rem 1rem;
             text-align: left;
-            transition: all 0.2s ease;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
             position: relative;
             overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            opacity: 0; 
         }
 
-        .option-btn:active {
-            transform: scale(0.98);
+        .option-btn:active { 
+            transform: scale(0.97); 
+            background: var(--bg-surface-hover); 
         }
 
         .option-letter {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            background: var(--bg-dark);
+            width: 38px;
+            height: 38px;
+            background: rgba(0, 0, 0, 0.3);
             color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.15rem;
             font-weight: 900;
-            border-radius: 8px;
+            border-radius: 12px;
             margin-right: 1rem;
             flex-shrink: 0;
-            border: 1px solid rgba(56, 189, 248, 0.3);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s ease;
         }
 
         .option-text {
@@ -147,34 +262,53 @@
             font-weight: 700;
             color: var(--text-main);
             flex-grow: 1;
+            letter-spacing: -0.01em;
         }
 
-        /* Durum Renkleri */
+        /* Entry Animation */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Durum Renkleri (Doğru / Yanlış) */
         .option-btn.correct {
-            background: rgba(16, 185, 129, 0.15);
+            background: var(--success-light);
             border-color: var(--success);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
         }
         .option-btn.correct .option-letter {
             background: var(--success);
-            color: white;
+            color: #fff;
             border-color: var(--success);
         }
+        .option-btn.correct .option-text { color: var(--success); }
 
         .option-btn.wrong {
-            background: rgba(239, 68, 68, 0.15);
+            background: var(--danger-light);
             border-color: var(--danger);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
         }
         .option-btn.wrong .option-letter {
             background: var(--danger);
-            color: white;
+            color: #fff;
             border-color: var(--danger);
         }
+        .option-btn.wrong .option-text { color: var(--danger); }
 
-        /* Marker CSS */
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Koyu Temada Parlayan Markerlar */
         .map-marker {
             transform-origin: center;
-            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            opacity: 0; /* Animasyon başlamadan önce gizli olsun */
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0; 
         }
         @keyframes popIn {
             0% { transform: scale(0); opacity: 0; }
@@ -182,37 +316,135 @@
         }
 
         .marker-circle {
-            fill: #fbbf24; /* Sarı pin */
-            stroke: #000;
-            stroke-width: 1px;
-            filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.8));
+            fill: var(--warning);
+            stroke: var(--bg-main);
+            stroke-width: 1.5px;
+            filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.8));
+        }
+        
+        .marker-pulse {
+            fill: none;
+            stroke: var(--warning);
+            stroke-width: 1.5px;
+            animation: radarPulse 2s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes radarPulse {
+            0% { r: 8px; opacity: 1; stroke-width: 2px; }
+            100% { r: 26px; opacity: 0; stroke-width: 0px; }
         }
         
         .marker-text {
-            fill: #000;
-            font-size: 6px;
+            fill: var(--bg-main);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 8px;
             font-weight: 900;
             text-anchor: middle;
             dominant-baseline: central;
         }
 
-        /* Modals & Loaders */
-        .loader { width: 40px; height: 40px; border: 4px solid var(--bg-card); border-bottom-color: var(--primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
-        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Tekil Merkez Hedef Marker (Soru Tip 2) */
+        .marker-target {
+            fill: #ff0055;
+            stroke: #fff;
+            stroke-width: 2px;
+            filter: drop-shadow(0 0 12px #ff0055);
+        }
+        .marker-target-pulse {
+            fill: none;
+            stroke: #ff0055;
+            animation: targetPulse 1.5s infinite ease-out;
+        }
+        @keyframes targetPulse {
+            0% { r: 8px; opacity: 1; stroke-width: 3px; }
+            100% { r: 35px; opacity: 0; stroke-width: 0px; }
+        }
 
-        #modal-overlay {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+        /* --- MODERN FEEDBACK POPUP (BOTTOM SHEET) --- */
+        #feedback-overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px); z-index: 60; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #feedback-overlay.active { opacity: 1; pointer-events: auto; }
+
+        #feedback-sheet {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-top-left-radius: 32px; border-top-right-radius: 32px;
+            padding: 2.5rem 1.5rem 2rem; z-index: 70;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.5);
+            border-top: 1px solid var(--border-color);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+        }
+        #feedback-sheet.active { transform: translateY(0); }
+
+        .sheet-drag-handle {
+            width: 48px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px;
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+        }
+
+        .feedback-icon {
+            width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin-top: -64px; margin-bottom: 1.25rem; border: 6px solid #1e293b;
+            background: var(--sheet-color); box-shadow: 0 10px 25px var(--sheet-shadow);
+        }
+        .feedback-icon i { width: 36px; height: 36px; color: #fff; }
+
+        .theme-success {
+            --sheet-color: var(--success);
+            --sheet-shadow: rgba(16, 185, 129, 0.4);
+            --btn-bg: var(--success);
+        }
+        .theme-danger {
+            --sheet-color: var(--danger);
+            --sheet-shadow: rgba(239, 68, 68, 0.4);
+            --btn-bg: var(--danger);
+        }
+
+        .feedback-title { color: var(--text-main); font-family: 'Space Grotesk', sans-serif; font-size: 1.75rem; font-weight: 900; margin-bottom: 0.75rem; }
+        .feedback-desc { color: var(--text-muted); font-size: 1rem; line-height: 1.5; margin-bottom: 2rem; }
+        .feedback-desc strong { color: var(--text-main); font-weight: 800; }
+        
+        .feedback-btn {
+            background: var(--btn-bg); color: #ffffff; width: 100%; padding: 1.1rem;
+            border-radius: 20px; font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 900;
+            box-shadow: 0 10px 20px var(--sheet-shadow); transition: transform 0.1s; border: none; outline: none; cursor: pointer;
+        }
+        .feedback-btn:active { transform: scale(0.96); }
+
+        /* End Game Modal */
+        #end-overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px);
             display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1.5rem;
             opacity: 0; pointer-events: none; transition: opacity 0.3s;
         }
-        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+        #end-overlay.active { opacity: 1; pointer-events: auto; }
         
         .modal-card {
-            background: var(--bg-card); width: 100%; border-radius: 20px; padding: 2rem;
-            text-align: center; border: 1px solid var(--map-stroke); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
-            transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            background: rgba(30, 41, 59, 0.9); width: 100%;
+            border-radius: 32px; padding: 3rem 1.5rem 2rem; text-align: center;
+            box-shadow: var(--shadow-lg); border: 1px solid var(--border-color);
+            transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        #modal-overlay.active .modal-card { transform: translateY(0); }
+        #end-overlay.active .modal-card { transform: translateY(0) scale(1); }
+
+        .end-icon-wrapper {
+            width: 96px; height: 96px; margin: -5rem auto 1.5rem; background: var(--bg-surface); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; position: relative;
+            box-shadow: var(--shadow-md);
+        }
+        .end-icon-wrapper::before {
+            content: ''; position: absolute; inset: -3px; border-radius: 50%;
+            background: var(--primary-gradient); z-index: -1; animation: spin 3s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .end-icon-wrapper i { color: var(--primary); width: 44px; height: 44px; }
+
+        /* Loader */
+        .loader { width: 48px; height: 48px; border: 4px solid var(--primary-light); border-bottom-color: var(--primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
     </style>
 </head>
@@ -220,35 +452,39 @@
 
 <div id="app-container">
     
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <!-- Yükleme Ekranı -->
-    <div id="loading-screen" class="absolute inset-0 z-50 bg-[var(--bg-dark)] flex flex-col items-center justify-center">
-        <span class="loader mb-4"></span>
-        <p class="font-bold text-[var(--primary)]">Sorular Hazırlanıyor...</p>
+    <div id="loading-screen" class="absolute inset-0 z-50 bg-[var(--bg-main)] flex flex-col items-center justify-center">
+        <span class="loader mb-6"></span>
+        <p class="font-bold text-[var(--primary)] text-lg font-['Space_Grotesk'] tracking-widest uppercase">Veriler Yükleniyor</p>
     </div>
 
     <!-- Üst Bilgi Çubuğu -->
     <header class="app-header">
-        <div class="flex flex-col">
-            <span class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider">Maden Bulmaca</span>
-            <span class="text-sm font-black text-white" id="score-display">0 Puan</span>
-        </div>
-        <div class="px-3 py-1 bg-[var(--bg-card)] rounded-full border border-[var(--map-stroke)]">
-            <span class="text-xs font-bold text-[var(--primary)]"><span id="q-current">1</span> / <span id="q-total">10</span></span>
-        </div>
+        <div class="question-counter">SORU <span id="q-current">1</span>/10</div>
+        <div class="score-pill" id="score-display">0 PUAN</div>
     </header>
 
     <!-- Soru Metni -->
     <div class="question-area">
-        <h2 class="question-title">Hangisinde <span class="text-white">BULUNMAZ?</span></h2>
-        <h1 class="resource-name" id="question-resource">Yükleniyor</h1>
+        <div class="question-text" id="question-text">Soru Yükleniyor...</div>
+        <h1 class="resource-name" id="question-resource">...</h1>
     </div>
 
     <!-- Harita (Görsel Yardımcı) -->
-    <div class="map-container">
-        <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
-            <g id="layer-provinces"></g>
-            <g id="layer-markers"></g>
-        </svg>
+    <div class="map-wrapper">
+        <div class="map-container">
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="layer-provinces"></g>
+                <g id="layer-markers"></g>
+            </svg>
+        </div>
     </div>
 
     <!-- Şıklar -->
@@ -256,27 +492,39 @@
         <!-- Butonlar JS ile buraya eklenecek -->
     </div>
 
+    <!-- MODERN FEEDBACK POPUP (BOTTOM SHEET) -->
+    <div id="feedback-overlay"></div>
+    <div id="feedback-sheet" class="theme-success">
+        <div class="sheet-drag-handle"></div>
+        <div class="feedback-icon" id="feedback-icon-container">
+            <i data-lucide="check" id="feedback-icon"></i>
+        </div>
+        <h2 class="feedback-title" id="feedback-title">Harika! Doğru Bildin</h2>
+        <p class="feedback-desc" id="feedback-desc">Açıklama buraya gelecek.</p>
+        <button class="feedback-btn" onclick="game.nextQuestion()">Sonraki Soru</button>
+    </div>
+
     <!-- Oyun Sonu Ekranı -->
-    <div id="modal-overlay">
+    <div id="end-overlay">
         <div class="modal-card">
-            <div class="w-20 h-20 mx-auto bg-[var(--bg-dark)] rounded-full flex items-center justify-center border-4 border-[var(--primary)] mb-4 text-[var(--primary)]">
-                <i data-lucide="trophy" class="w-10 h-10"></i>
+            <div class="end-icon-wrapper">
+                <i data-lucide="award"></i>
             </div>
-            <h2 class="text-3xl font-black text-white mb-2">Tebrikler!</h2>
-            <p class="text-[var(--text-muted)] text-sm mb-6">Günün maden avını tamamladın.</p>
+            <h2 class="text-3xl font-black text-[var(--text-main)] mb-2 font-['Space_Grotesk']">Görev Bitti!</h2>
+            <p class="text-[var(--text-muted)] text-sm mb-8">Türkiye'nin maden haritasını başarıyla taradın.</p>
             
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="bg-[var(--bg-dark)] p-3 rounded-xl border border-[var(--map-stroke)]">
-                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1">Skor</div>
-                    <div class="text-2xl font-black text-[var(--success)]" id="final-score">0</div>
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-[var(--bg-main)] p-4 rounded-2xl border border-[var(--border-color)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Skor</div>
+                    <div class="text-3xl font-black text-[var(--primary)] font-['Space_Grotesk']" id="final-score">0</div>
                 </div>
-                <div class="bg-[var(--bg-dark)] p-3 rounded-xl border border-[var(--map-stroke)]">
-                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1">Doğru</div>
-                    <div class="text-2xl font-black text-[var(--primary)]" id="final-correct">0/10</div>
+                <div class="bg-[var(--bg-main)] p-4 rounded-2xl border border-[var(--border-color)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Doğruluk</div>
+                    <div class="text-3xl font-black text-[var(--success)] font-['Space_Grotesk']" id="final-correct">0/10</div>
                 </div>
             </div>
 
-            <button onclick="location.reload()" class="w-full py-4 bg-[var(--primary)] text-[var(--bg-dark)] font-black text-lg rounded-xl shadow-[0_4px_15px_rgba(56,189,248,0.4)] active:scale-95 transition-transform">
+            <button onclick="location.reload()" class="w-full py-4 text-white font-black text-lg rounded-2xl font-['Space_Grotesk'] uppercase tracking-wider active:scale-95 transition-transform" style="background: var(--primary-gradient); box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);">
                 Yeniden Oyna
             </button>
         </div>
@@ -287,7 +535,7 @@
 <script>
     const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
 
-    // Türkiye lokasyon koordinatları (Markerların yerleşeceği noktalar)
+    // Genişletilmiş Koordinat Listesi (Tüm İller ve İlçeler İçin Merkezler / Fallbackler)
     const baseCoords = {
         "Bandırma": [27.97, 40.35], "Emet": [29.25, 39.34], "Bursa": [29.06, 40.18], "Eskişehir": [30.52, 39.77], "Kütahya": [29.98, 39.42],
         "Balıkesir": [27.88, 39.64], "Balıkesir - Eymir": [27.7, 39.5], "İzmir - Torbalı": [27.35, 38.15], "Kayseri - Faraşa": [35.5, 38.0],
@@ -316,7 +564,7 @@
         "Kütahya - Değirmisaz": [29.5, 39.5], "Kütahya - Tunçbilek": [29.4, 39.6], "Kütahya - Tavşanlı": [29.4, 39.5], "Kütahya - Seyitömer": [29.8, 39.5],
         "Sivas - Kangal": [37.2, 39.2], "Kahramanmaraş - Afşin Elbistan": [37.0, 38.2], "Bursa - Orhaneli": [28.9, 39.9],
         "Batman": [41.1, 37.8], "Kırıkkale - Orta Anadolu": [33.5, 39.8], "İzmit - Tüpraş": [29.9, 40.7], "İzmir - Aliağa": [26.9, 38.8], "Mersin - Ataş": [34.6, 36.8],
-        "Denizli - Kızıldere": [28.8, 37.9], "Aydın - Germencik": [27.6, 37.8], "Afyon": [30.5, 38.7],
+        "İzmir - Alaçatı": [26.3, 38.2], "Zonguldak - Çatalağzı": [31.8, 41.5], "Denizli - Kızıldere": [28.8, 37.9], "Aydın - Germencik": [27.6, 37.8], "Afyon": [30.5, 38.7],
         "Konya": [32.48, 37.86], "Elazığ": [39.22, 38.68]
     };
 
@@ -334,22 +582,69 @@
         "barit": ["Alanya", "Elbistan", "Çanakkale", "Eskişehir", "Giresun", "Muş"],
         "tuz": ["İzmir - Çamaltı", "Tuz Gölü", "Çankırı", "Yozgat - Yerköy", "Nevşehir - Gülşehir", "Iğdır - Tuzluca"],
         "perlit": ["Van", "Erzincan", "İzmir", "Erzurum", "Nevşehir", "Çanakkale", "Manisa", "Çankırı"],
+        "lule_tasi": ["Eskişehir"], 
+        "oltu_tasi": ["Erzurum"],
+        "fosfat": ["Mardin - Mazıdağı", "Bingöl", "Adıyaman"],
+        "kükürt": ["Kütahya", "Isparta - Keçiborlu", "Muğla"],
         "kursun_cinko": ["Elazığ", "Kayseri", "Çanakkale", "Yozgat", "Giresun"],
+        "civa": ["İzmir - Karaburun", "Konya - Sarayönü", "Niğde"],
+        "volfram_tungsten": ["Elazığ - Keban", "Bursa - Uludağ", "Kırıkkale - Keskin"],
         "asbest": ["İzmir", "Bursa", "Hatay - İskenderun", "Sivas"],
-        "bentonit": ["Edirne - Enez", "Çanakkale", "Kütahya", "Manisa", "Ordu", "Tokat"]
+        "trona": ["Ankara - Beypazarı"], 
+        "zimpara_tasi": ["Aydın", "İzmir", "Muğla"],
+        "bentonit": ["Edirne - Enez", "Çanakkale", "Kütahya", "Manisa", "Ordu", "Tokat"],
+        "uranyum": ["Aydın - Koçarlı", "Çanakkale - Ayvacık", "Yozgat"], 
+        "toryum": ["Eskişehir"]
       },
       "enerji": {
         "dogalgaz": ["Tekirdağ - Hayrabolu", "Mardin - Çamurlu", "Kırklareli - Hamitabat", "Düzce - Akçakoca"],
         "dogalgaz_termik_santralleri": ["Ovaakça", "Bandırma", "Aliağa", "Hamitabat", "Ambarlı", "Gebze"],
         "linyit_termik_santralleri": ["Çanakkale - Çan", "Manisa - Soma", "Muğla - Kemerköy", "Muğla - Yatağan", "Kütahya - Değirmisaz", "Kütahya - Tunçbilek", "Kütahya - Tavşanlı", "Kütahya - Seyitömer", "Sivas - Kangal", "Kahramanmaraş - Afşin Elbistan", "Bursa - Orhaneli"],
         "petrol_rafineleri": ["Batman", "Kırıkkale - Orta Anadolu", "İzmit - Tüpraş", "İzmir - Aliağa", "Mersin - Ataş"],
+        "ruzgar_santralleri": ["İzmir - Alaçatı"], 
+        "taskomuru_santrali": ["Zonguldak - Çatalağzı"],
         "jeotermal_santraller": ["Denizli - Kızıldere", "Aydın - Germencik", "Afyon", "Çanakkale"]
       }
     };
 
     const nameMap = {
-        "bor": "Bor", "demir": "Demir", "krom": "Krom", "bakır": "Bakır", "boksit": "Boksit", "altın": "Altın", "manyezit": "Manyezit", "manganez": "Manganez", "feldispat": "Feldispat", "barit": "Barit", "tuz": "Tuz", "perlit": "Perlit", "kursun_cinko": "Kurşun & Çinko", "asbest": "Asbest", "bentonit": "Bentonit",
-        "dogalgaz": "Doğalgaz Çıkarımı", "dogalgaz_termik_santralleri": "Doğalgaz Santrali", "linyit_termik_santralleri": "Linyit Santrali", "petrol_rafineleri": "Petrol Rafinerisi", "jeotermal_santraller": "Jeotermal Santral"
+        "bor": "Bor", "demir": "Demir", "krom": "Krom", "bakır": "Bakır", "boksit": "Boksit", "altın": "Altın", "manyezit": "Manyezit", "manganez": "Manganez", "feldispat": "Feldispat", "barit": "Barit", "tuz": "Tuz", "perlit": "Perlit", "kursun_cinko": "Kurşun & Çinko", "asbest": "Asbest", "bentonit": "Bentonit", "lule_tasi": "Lületaşı", "oltu_tasi": "Oltutaşı", "fosfat": "Fosfat", "kükürt": "Kükürt", "civa": "Cıva", "volfram_tungsten": "Volfram (Tungsten)", "trona": "Trona", "zimpara_tasi": "Zımpara Taşı", "uranyum": "Uranyum", "toryum": "Toryum",
+        "dogalgaz": "Doğalgaz", "dogalgaz_termik_santralleri": "Doğalgaz Santrali", "linyit_termik_santralleri": "Linyit Santrali", "petrol_rafineleri": "Petrol Rafinerisi", "jeotermal_santraller": "Jeotermal Santral", "ruzgar_santralleri": "Rüzgar Santrali", "taskomuru_santrali": "Taşkömürü Santrali"
+    };
+
+    const infoMap = {
+        "bor": "Türkiye dünya bor rezervlerinin %73'üne sahiptir. Balıkesir, Kütahya ve Eskişehir en önemli çıkarım alanlarıdır.",
+        "demir": "Ağır sanayinin temelidir. Sivas (Divriği) ve Malatya (Hekimhan) en verimli ve önemli demir yataklarımızdır.",
+        "krom": "Paslanmaz çelik üretiminde kullanılır. Elazığ (Guleman) ve Muğla çevresinde çokça çıkarılır.",
+        "bakır": "İletkenliği sebebiyle elektronikte kullanılır. Artvin (Murgul) ve Kastamonu (Küre) en çok bilinen yerlerdir.",
+        "boksit": "Alüminyumun hammaddesidir. Konya (Seydişehir) ve Antalya (Akseki) bölgeleriyle özdeşleşmiştir.",
+        "altın": "İzmir (Bergama) ve Artvin (Cerattepe) altın madeni açısından en popüler yataklarımızdır.",
+        "manyezit": "Ateşe dayanıklı tuğla yapımında kullanılır. İç Ege ve İç Anadolu'da yaygındır.",
+        "manganez": "Demir çelik sanayisinde çeliği sertleştirmek için kullanılır. Zonguldak ve Kastamonu çevresinde bulunur.",
+        "feldispat": "Cam ve seramik sanayisinde kullanılır. Ege Bölgesi'nde yoğunluktadır.",
+        "barit": "Sondaj çalışmalarında basıncı dengelemek için kullanılır. Antalya ve Kahramanmaraş öne çıkar.",
+        "tuz": "Göl (Tuz Gölü), deniz (İzmir Çamaltı) ve kaya tuzu (Çankırı, Yozgat) olarak elde edilir.",
+        "perlit": "İnşaat ve yalıtımda kullanılan volkanik bir camdır. Doğu Anadolu ve Ege'de çıkarılır.",
+        "kursun_cinko": "Genellikle bir arada bulunurlar. Elazığ (Keban) ve Kayseri önemli maden alanlarıdır.",
+        "asbest": "Isıya dayanıklı bir mineraldir. İzmir, Bursa ve Hatay civarında yatakları bulunur.",
+        "bentonit": "Döküm kumu ve kedi kumu yapımında sıkça kullanılan bir kil türüdür.",
+        "lule_tasi": "Süs eşyası ve pipo yapımında kullanılır. Dünyada en çok Eskişehir'de çıkarılır.",
+        "oltu_tasi": "Erzurum'un Oltu ilçesinde çıkarılan, takı ve tespih yapımında kullanılan değerli bir taştır.",
+        "fosfat": "Suni gübre yapımında kullanılır. Türkiye'de en önemli yatağı Mardin Mazıdağı'dır.",
+        "kükürt": "Kimya sanayisinde ve ilaçlamada kullanılır. Isparta Keçiborlu en bilinen yatağıdır.",
+        "civa": "Sıvı halde bulunan tek metaldir. İzmir (Karaburun) ve Konya (Sarayönü) civarında bulunur.",
+        "volfram_tungsten": "Çok sert ve ısıya dayanıklıdır. Bursa Uludağ en bilinen çıkarım alanıdır.",
+        "trona": "Doğal sodadır. Cam sanayisinde kullanılır. Ankara Beypazarı dünyadaki sayılı yataklardandır.",
+        "zimpara_tasi": "Aşındırıcı olarak kullanılır. Ege Bölgesi'nde (Aydın, İzmir, Muğla) yaygındır.",
+        "uranyum": "Nükleer enerji hammaddesidir. Yozgat ve Aydın (Koçarlı) civarında öne çıkar.",
+        "toryum": "Geleceğin nükleer yakıtı olarak görülür. Eskişehir yatakları dünyada önemli bir paya sahiptir.",
+        "dogalgaz": "Türkiye'de çıkarımı azdır. Trakya (Hamitabat) ve Düzce (Akçakoca) en bilinen çıkarım yerleridir.",
+        "dogalgaz_termik_santralleri": "Doğalgaz ile elektrik üreten santrallerimizdir. Hamitabat, Ovaakça ve Ambarlı büyüklerdendir.",
+        "linyit_termik_santralleri": "Linyitle çalışan elektrik santralleridir. Afşin Elbistan, Soma ve Yatağan en büyükleridir.",
+        "petrol_rafineleri": "Ham petrolün işlendiği tesislerdir. Batman (yerli petrol), Tüpraş (İzmit) ve Aliağa (İzmir) bulunur.",
+        "jeotermal_santraller": "Sıcak su buharıyla elektrik üretilir. Ege Bölgesi (Denizli - Kızıldere, Aydın - Germencik) merkezidir.",
+        "ruzgar_santralleri": "Rüzgar gücüyle temiz elektrik üretilir. Türkiye'de ilk ve en bilinenlerinden biri İzmir Alaçatı'dır.",
+        "taskomuru_santrali": "Taşkömürünün yüksek enerjisiyle çalışan termik santraldir. Zonguldak Çatalağzı en tipik örneğidir."
     };
 
     const audioController = {
@@ -376,15 +671,21 @@
         correctCount: 0,
         isClickable: true,
         
-        // Harita Projeksiyon Ayarları
         svg: null, geoBounds: { minLon: 25.5, maxLon: 44.5, minLat: 35.5, maxLat: 42.5 }, 
         viewBox: { w: 1000, h: 450 }, scale: 1, offsetX: 0, offsetY: 0,
+
+        getCoordsSafely: function(locName) {
+            if (baseCoords[locName]) return baseCoords[locName];
+            // Eğer tam isim bulunamazsa tireden öncesine (şehir adına) bak
+            let city = locName.split(' - ')[0].trim();
+            if (baseCoords[city]) return baseCoords[city];
+            return [35.0, 39.0]; // Merkezi Türkiye fallback
+        },
 
         init: function() {
             lucide.createIcons();
             document.body.addEventListener('click', () => audioController.init(), { once: true });
             
-            // Veriden yeterli (>=4 lokasyon) uzunluktaki madenleri havuz olarak al.
             this.generateQuestions();
             this.fetchMapData();
         },
@@ -393,45 +694,69 @@
             let pool = [];
             for(let cat in rawData) {
                 for(let res in rawData[cat]) {
-                    if(rawData[cat][res].length >= 4) { // En az 4 doğru lokasyonu olanları al
-                        pool.push({
-                            key: res, 
-                            name: nameMap[res], 
-                            locations: rawData[cat][res]
-                        });
-                    }
+                    pool.push({
+                        key: res, 
+                        name: nameMap[res], 
+                        locations: rawData[cat][res],
+                        info: infoMap[res] || "Önemli kaynaklarımızdan biridir.",
+                        type: rawData[cat][res].length >= 4 ? 1 : 2 // 4 veya fazlası Tip 1, azı Tip 2
+                    });
                 }
             }
             
-            // Havuzdan rastgele 10 maden seç
+            // Tüm sorulardan karışık 10 tanesini seç
             pool = pool.sort(() => Math.random() - 0.5).slice(0, 10);
             const allValidLocations = Object.keys(baseCoords);
 
             this.questions = pool.map(res => {
-                // 4 adet doğru konum seç
-                let correctLocs = [...res.locations].sort(() => Math.random() - 0.5).slice(0, 4);
-                
-                // 1 adet rastgele YANLIŞ konum seç (Madenin çıkmadığı bir yer)
-                let possibleWrongLocs = allValidLocations.filter(loc => !res.locations.includes(loc));
-                let wrongLoc = possibleWrongLocs[Math.floor(Math.random() * possibleWrongLocs.length)];
-                
-                // Şıkları oluştur ve karıştır
-                let options = [...correctLocs, wrongLoc].map(loc => ({
-                    name: loc,
-                    isWrongLocation: loc === wrongLoc, // Aradığımız cevap bu!
-                    coords: baseCoords[loc] || [35, 39]
-                }));
-                options = options.sort(() => Math.random() - 0.5);
-                
-                // A, B, C, D, E harflerini ata
-                options.forEach((opt, index) => {
-                    opt.letter = String.fromCharCode(65 + index);
-                });
+                if (res.type === 1) {
+                    // TİP 1: Hangisinde Bulunmaz? (Lokasyonlar Şık Olacak)
+                    let correctLocs = [...res.locations].sort(() => Math.random() - 0.5).slice(0, 4);
+                    let possibleWrongLocs = allValidLocations.filter(loc => !res.locations.includes(loc));
+                    let wrongLoc = possibleWrongLocs[Math.floor(Math.random() * possibleWrongLocs.length)];
+                    
+                    let options = [...correctLocs, wrongLoc].map(loc => ({
+                        text: loc,
+                        isCorrect: loc === wrongLoc, // Kazanmak için "Yanlış (Bulunmayan)" yeri seçmeli
+                        coords: this.getCoordsSafely(loc)
+                    }));
+                    
+                    options = options.sort(() => Math.random() - 0.5);
+                    options.forEach((opt, idx) => opt.letter = String.fromCharCode(65 + idx));
 
-                return {
-                    resourceName: res.name,
-                    options: options
-                };
+                    return {
+                        type: 1,
+                        questionTitle: "Bu kaynak hangisinde <span class='question-highlight'>BULUNMAZ?</span>",
+                        displayTitle: res.name,
+                        options: options,
+                        info: res.info,
+                        feedbackDesc: `<strong>${res.name}</strong>, ${wrongLoc} bölgesinde yer almaz.`
+                    };
+                } else {
+                    // TİP 2: Buradan Ne Çıkarılır? (Madenler Şık Olacak)
+                    let targetLoc = res.locations[Math.floor(Math.random() * res.locations.length)];
+                    
+                    let allOtherMinerals = Object.keys(nameMap).filter(k => k !== res.key);
+                    let wrongMinerals = allOtherMinerals.sort(() => Math.random() - 0.5).slice(0, 4);
+                    
+                    let options = [res.key, ...wrongMinerals].map(mineralKey => ({
+                        text: nameMap[mineralKey],
+                        isCorrect: mineralKey === res.key // Kazanmak için "Doğru Madeni" seçmeli
+                    }));
+                    
+                    options = options.sort(() => Math.random() - 0.5);
+                    options.forEach((opt, idx) => opt.letter = String.fromCharCode(65 + idx));
+
+                    return {
+                        type: 2,
+                        questionTitle: "İşaretli konumda hangisi <span class='question-highlight'>ÇIKARILIR?</span>",
+                        displayTitle: targetLoc,
+                        mapTarget: this.getCoordsSafely(targetLoc),
+                        options: options,
+                        info: res.info,
+                        feedbackDesc: `<strong>${targetLoc}</strong> bölgesindeki en önemli kaynaklardan biri <strong>${res.name}</strong>'dir.`
+                    };
+                }
             });
         },
 
@@ -444,7 +769,7 @@
                     this.loadQuestion();
                 })
                 .catch(err => {
-                    document.getElementById('loading-screen').innerHTML = "<p class='text-red-500 font-bold'>Harita yüklenemedi. İnternet bağlantınızı kontrol edin.</p>";
+                    document.getElementById('loading-screen').innerHTML = "<p class='text-[var(--danger)] font-bold'>Harita yüklenemedi. İnternet bağlantınızı kontrol edin.</p>";
                 });
         },
 
@@ -497,90 +822,140 @@
             const q = this.questions[this.currentIndex];
             this.isClickable = true;
 
-            // UI Güncelle
             document.getElementById('q-current').innerText = this.currentIndex + 1;
-            document.getElementById('score-display').innerText = `${this.score} Puan`;
-            document.getElementById('question-resource').innerText = q.resourceName;
+            document.getElementById('score-display').innerText = `${this.score} PTS`;
+            document.getElementById('question-text').innerHTML = q.questionTitle;
+            document.getElementById('question-resource').innerText = q.displayTitle;
 
-            // Şıkları ve Harita Markerlarını Çiz
             const optionsContainer = document.getElementById('options-container');
             const markerLayer = document.getElementById('layer-markers');
             
             optionsContainer.innerHTML = '';
             markerLayer.innerHTML = '';
 
-            q.options.forEach((opt, i) => {
-                // --- 1. Haritaya Marker Ekle ---
-                const p = this.project(opt.coords[0], opt.coords[1]);
-                
-                // Konumu koruyan dış kapsayıcı grup
+            // Harita Çizimleri
+            if (q.type === 1) {
+                // TİP 1: 5 Farklı Nokta (A,B,C,D,E)
+                q.options.forEach((opt, i) => {
+                    const p = this.project(opt.coords[0], opt.coords[1]);
+                    const gOuter = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    gOuter.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+
+                    const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    gInner.setAttribute("class", "map-marker");
+                    gInner.style.animationDelay = `${i * 0.1}s`;
+
+                    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    circle.setAttribute("r", "8"); 
+                    circle.setAttribute("class", "marker-circle");
+
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("class", "marker-text");
+                    text.textContent = opt.letter;
+
+                    gInner.appendChild(circle);
+                    gInner.appendChild(text);
+                    gOuter.appendChild(gInner);
+                    markerLayer.appendChild(gOuter);
+                });
+            } else {
+                // TİP 2: Tek Merkez Hedef Noktası (Radar Pulse)
+                const p = this.project(q.mapTarget[0], q.mapTarget[1]);
                 const gOuter = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 gOuter.setAttribute("transform", `translate(${p.x}, ${p.y})`);
 
-                // CSS transform animasyonunun uygulanacağı iç grup (konumu bozmadan kendi içinde büyür)
                 const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 gInner.setAttribute("class", "map-marker");
-                gInner.style.animationDelay = `${i * 0.1}s`;
 
-                // Sarı damla / Pin
-                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circle.setAttribute("r", "10"); // Harita küçük olduğu için pini büyük yapıyoruz
-                circle.setAttribute("class", "marker-circle");
-
-                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                text.setAttribute("class", "marker-text");
-                text.textContent = opt.letter;
-
-                gInner.appendChild(circle);
-                gInner.appendChild(text);
+                const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulse.setAttribute("class", "marker-target-pulse");
                 
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", "8"); 
+                circle.setAttribute("class", "marker-target");
+
+                gInner.appendChild(pulse);
+                gInner.appendChild(circle);
                 gOuter.appendChild(gInner);
                 markerLayer.appendChild(gOuter);
+            }
 
-                // --- 2. Şık Butonunu Ekle ---
+            // Şıkları Çiz
+            q.options.forEach((opt, i) => {
                 const btn = document.createElement('button');
                 btn.className = "option-btn";
+                btn.style.animation = `slideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s forwards`;
                 btn.innerHTML = `
                     <div class="option-letter">${opt.letter}</div>
-                    <div class="option-text">${opt.name}</div>
+                    <div class="option-text">${opt.text}</div>
                 `;
-                btn.onclick = () => this.handleAnswer(opt, btn, q.options);
+                btn.onclick = () => this.handleAnswer(opt, btn, q);
                 optionsContainer.appendChild(btn);
             });
         },
 
-        handleAnswer: function(selectedOpt, btnElement, allOptions) {
+        handleAnswer: function(selectedOpt, btnElement, currentQuestion) {
             if (!this.isClickable) return;
             this.isClickable = false;
 
             const optionsContainer = document.getElementById('options-container');
             const buttons = optionsContainer.querySelectorAll('.option-btn');
 
-            // Kullanıcı "hangisinde BULUNMAZ" sorusuna yanlış olan yeri bularak "doğru" cevap vermeli
-            if (selectedOpt.isWrongLocation) {
+            let isCorrect = selectedOpt.isCorrect;
+            
+            const sheet = document.getElementById('feedback-sheet');
+            const overlay = document.getElementById('feedback-overlay');
+            const icon = document.getElementById('feedback-icon');
+            const title = document.getElementById('feedback-title');
+            const desc = document.getElementById('feedback-desc');
+
+            if (isCorrect) {
                 audioController.play('success');
                 btnElement.classList.add('correct');
                 this.score += 10;
                 this.correctCount++;
+                
+                sheet.className = "theme-success";
+                icon.setAttribute("data-lucide", "check");
+                title.innerText = "Sistem Doğrulandı!";
             } else {
                 audioController.play('error');
                 btnElement.classList.add('wrong');
                 
-                // Doğru olan (Madenin bulunmadığı) şıkkı yeşile boyayarak göster
-                allOptions.forEach((opt, idx) => {
-                    if (opt.isWrongLocation) {
+                currentQuestion.options.forEach((opt, idx) => {
+                    if (opt.isCorrect) {
                         buttons[idx].classList.add('correct');
                     }
                 });
+
+                sheet.className = "theme-danger";
+                icon.setAttribute("data-lucide", "x");
+                title.innerText = "Hedef Hatalı!";
             }
 
-            document.getElementById('score-display').innerText = `${this.score} Puan`;
+            document.getElementById('score-display').innerText = `${this.score} PTS`;
+            
+            desc.innerHTML = `${currentQuestion.feedbackDesc}<br><br><span style="opacity:0.8; font-size:0.95rem; font-weight: 500;">${currentQuestion.info}</span>`;
+            
+            lucide.createIcons();
 
-            // 1.5 saniye bekle ve diğer soruya geç
+            setTimeout(() => {
+                overlay.classList.add('active');
+                sheet.classList.add('active');
+            }, 700);
+        },
+
+        nextQuestion: function() {
+            const sheet = document.getElementById('feedback-sheet');
+            const overlay = document.getElementById('feedback-overlay');
+            
+            sheet.classList.remove('active');
+            overlay.classList.remove('active');
+
             setTimeout(() => {
                 this.currentIndex++;
                 this.loadQuestion();
-            }, 1500);
+            }, 300); 
         },
 
         endGame: function() {
@@ -588,13 +963,13 @@
             document.getElementById('final-correct').innerText = `${this.correctCount}/10`;
             
             this.triggerConfetti();
-            document.getElementById('modal-overlay').classList.add('active');
+            document.getElementById('end-overlay').classList.add('active');
         },
 
         triggerConfetti: function() {
             var duration = 3 * 1000;
             var animationEnd = Date.now() + duration;
-            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200, colors: ['#38bdf8', '#10b981', '#ffffff'] };
             function randomInRange(min, max) { return Math.random() * (max - min) + min; }
             var interval = setInterval(function() {
               var timeLeft = animationEnd - Date.now();
