@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maden Nerede Bulunmaz? - Mobil Oyun</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #38bdf8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --map-land: #334155;
+            --map-stroke: #475569;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            overflow: hidden; /* Tam ekran mobil deneyimi için scrollu kapat */
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Mobil Uygulama Çerçevesi */
+        #app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 100vh;
+            height: 100dvh; /* iOS Safari fix */
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-dark);
+            box-shadow: 0 0 40px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        /* Header Bar */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--bg-card);
+            z-index: 10;
+        }
+
+        /* Soru Alanı */
+        .question-area {
+            padding: 1.25rem;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        .question-title {
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .resource-name {
+            font-size: 2.2rem;
+            font-weight: 900;
+            color: var(--primary);
+            text-transform: uppercase;
+            line-height: 1.1;
+        }
+
+        /* Harita Alanı */
+        .map-container {
+            flex-shrink: 0;
+            height: 28vh; /* Ekranın %28'i harita */
+            min-height: 180px;
+            width: 100%;
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+            position: relative;
+            pointer-events: none; /* Harita sadece görsel, tıklama yok */
+            border-top: 1px solid var(--bg-card);
+            border-bottom: 1px solid var(--bg-card);
+        }
+
+        .province-path {
+            fill: var(--map-land);
+            stroke: var(--map-stroke);
+            stroke-width: 0.5px;
+            vector-effect: non-scaling-stroke;
+        }
+
+        /* Şıklar / Butonlar Alanı */
+        .options-container {
+            flex-grow: 1;
+            padding: 1.25rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: var(--bg-card);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .option-btn:active {
+            transform: scale(0.98);
+        }
+
+        .option-letter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--bg-dark);
+            color: var(--primary);
+            font-weight: 900;
+            border-radius: 8px;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .option-text {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-main);
+            flex-grow: 1;
+        }
+
+        /* Durum Renkleri */
+        .option-btn.correct {
+            background: rgba(16, 185, 129, 0.15);
+            border-color: var(--success);
+        }
+        .option-btn.correct .option-letter {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .option-btn.wrong {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: var(--danger);
+        }
+        .option-btn.wrong .option-letter {
+            background: var(--danger);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        /* Marker CSS */
+        .map-marker {
+            transform-origin: center;
+            animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0; /* Animasyon başlamadan önce gizli olsun */
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .marker-circle {
+            fill: #fbbf24; /* Sarı pin */
+            stroke: #000;
+            stroke-width: 1px;
+            filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.8));
+        }
+        
+        .marker-text {
+            fill: #000;
+            font-size: 6px;
+            font-weight: 900;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        /* Modals & Loaders */
+        .loader { width: 40px; height: 40px; border: 4px solid var(--bg-card); border-bottom-color: var(--primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #modal-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+            display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1.5rem;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-card {
+            background: var(--bg-card); width: 100%; border-radius: 20px; padding: 2rem;
+            text-align: center; border: 1px solid var(--map-stroke); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+            transform: translateY(20px); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #modal-overlay.active .modal-card { transform: translateY(0); }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- Yükleme Ekranı -->
+    <div id="loading-screen" class="absolute inset-0 z-50 bg-[var(--bg-dark)] flex flex-col items-center justify-center">
+        <span class="loader mb-4"></span>
+        <p class="font-bold text-[var(--primary)]">Sorular Hazırlanıyor...</p>
+    </div>
+
+    <!-- Üst Bilgi Çubuğu -->
+    <header class="app-header">
+        <div class="flex flex-col">
+            <span class="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider">Maden Bulmaca</span>
+            <span class="text-sm font-black text-white" id="score-display">0 Puan</span>
+        </div>
+        <div class="px-3 py-1 bg-[var(--bg-card)] rounded-full border border-[var(--map-stroke)]">
+            <span class="text-xs font-bold text-[var(--primary)]"><span id="q-current">1</span> / <span id="q-total">10</span></span>
+        </div>
+    </header>
+
+    <!-- Soru Metni -->
+    <div class="question-area">
+        <h2 class="question-title">Hangisinde <span class="text-white">BULUNMAZ?</span></h2>
+        <h1 class="resource-name" id="question-resource">Yükleniyor</h1>
+    </div>
+
+    <!-- Harita (Görsel Yardımcı) -->
+    <div class="map-container">
+        <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+            <g id="layer-provinces"></g>
+            <g id="layer-markers"></g>
+        </svg>
+    </div>
+
+    <!-- Şıklar -->
+    <div class="options-container" id="options-container">
+        <!-- Butonlar JS ile buraya eklenecek -->
+    </div>
+
+    <!-- Oyun Sonu Ekranı -->
+    <div id="modal-overlay">
+        <div class="modal-card">
+            <div class="w-20 h-20 mx-auto bg-[var(--bg-dark)] rounded-full flex items-center justify-center border-4 border-[var(--primary)] mb-4 text-[var(--primary)]">
+                <i data-lucide="trophy" class="w-10 h-10"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-2">Tebrikler!</h2>
+            <p class="text-[var(--text-muted)] text-sm mb-6">Günün maden avını tamamladın.</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="bg-[var(--bg-dark)] p-3 rounded-xl border border-[var(--map-stroke)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1">Skor</div>
+                    <div class="text-2xl font-black text-[var(--success)]" id="final-score">0</div>
+                </div>
+                <div class="bg-[var(--bg-dark)] p-3 rounded-xl border border-[var(--map-stroke)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase mb-1">Doğru</div>
+                    <div class="text-2xl font-black text-[var(--primary)]" id="final-correct">0/10</div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-4 bg-[var(--primary)] text-[var(--bg-dark)] font-black text-lg rounded-xl shadow-[0_4px_15px_rgba(56,189,248,0.4)] active:scale-95 transition-transform">
+                Yeniden Oyna
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
+
+    // Türkiye lokasyon koordinatları (Markerların yerleşeceği noktalar)
+    const baseCoords = {
+        "Bandırma": [27.97, 40.35], "Emet": [29.25, 39.34], "Bursa": [29.06, 40.18], "Eskişehir": [30.52, 39.77], "Kütahya": [29.98, 39.42],
+        "Balıkesir": [27.88, 39.64], "Balıkesir - Eymir": [27.7, 39.5], "İzmir - Torbalı": [27.35, 38.15], "Kayseri - Faraşa": [35.5, 38.0],
+        "Sivas - Divriği": [38.11, 39.37], "Malatya - Hasançelebi": [37.9, 38.8], "Malatya - Hekimhan": [37.93, 38.82], "Niğde": [34.67, 37.96],
+        "Adana": [35.32, 37.00], "Sakarya - Çamdağı": [30.4, 40.7], "Bingöl": [40.49, 38.88], "Hatay": [36.16, 36.20],
+        "Elazığ - Guleman": [39.8, 38.5], "Bursa - Harmancık": [29.1, 39.7], "Muğla - Fethiye": [29.11, 36.62], "Muğla - Köyceğiz": [28.69, 36.96],
+        "Muğla - Dalaman": [28.8, 36.76], "Bayburt - Kop Dağı": [40.2, 40.0], "Eskişehir - Mihalıççık": [31.4, 39.8],
+        "Elazığ - Maden": [39.6, 38.3], "Diyarbakır": [40.23, 37.91], "Artvin - Murgul": [41.5, 41.2], "Kastamonu - Küre": [33.7, 41.8],
+        "Samsun": [36.33, 41.28], "Rize - Çayeli": [40.7, 41.0],
+        "Konya - Seydişehir": [31.8, 37.4], "Antalya - Akseki": [31.7, 37.0], "Zonguldak - Kokaksu": [31.7, 41.4], "Hatay - Payas": [36.2, 36.7],
+        "İzmir - Bergama": [27.1, 39.1], "İzmir - Efemçukuru": [26.9, 38.2], "Uşak": [29.4, 38.6], "Gümüşhane": [39.4, 40.4], "Artvin - Cerattepe": [41.8, 41.1],
+        "Erzincan": [39.5, 39.7], "Zonguldak": [31.79, 41.45], "Kastamonu": [33.77, 41.37], "Denizli - Tavas": [29.0, 37.5], "Burdur": [30.2, 37.7],
+        "Adana - Ceyhan": [35.8, 37.0], "Artvin - Borçka": [41.6, 41.3],
+        "Manisa - Demirci": [28.3, 39.0], "Bilecik - Söğüt": [30.1, 40.0], "Muğla - Milas": [27.7, 37.3], "Kütahya - Simav": [28.9, 39.0], "Aydın - Çine": [28.0, 37.6],
+        "Alanya": [31.9, 36.5], "Elbistan": [37.1, 38.2], "Çanakkale": [26.4, 40.1], "Giresun": [38.3, 40.9], "Muş": [41.4, 38.7],
+        "İzmir - Çamaltı": [26.9, 38.4], "Tuz Gölü": [33.3, 38.8], "Çankırı": [33.6, 40.6], "Yozgat - Yerköy": [34.4, 39.6], "Nevşehir - Gülşehir": [34.6, 38.7], "Iğdır - Tuzluca": [43.6, 40.0],
+        "Van": [43.3, 38.5], "Erzurum": [41.2, 39.9], "Nevşehir": [34.7, 38.6], "Manisa": [27.4, 38.6],
+        "Mardin - Mazıdağı": [40.4, 37.5], "Adıyaman": [38.2, 37.7], "Isparta - Keçiborlu": [30.3, 37.9], "Muğla": [28.3, 37.2],
+        "Kayseri": [35.4, 38.7], "Yozgat": [34.8, 39.8], "İzmir - Karaburun": [26.5, 38.6], "Konya - Sarayönü": [32.4, 38.2],
+        "Elazığ - Keban": [38.7, 38.7], "Bursa - Uludağ": [29.2, 40.0], "Kırıkkale - Keskin": [33.6, 39.6],
+        "İzmir": [27.1, 38.4], "Hatay - İskenderun": [36.1, 36.5], "Sivas": [37.0, 39.7], "Ankara - Beypazarı": [31.9, 40.1], "Aydın": [27.8, 37.8],
+        "Edirne - Enez": [26.0, 40.7], "Ordu": [37.8, 40.9], "Tokat": [36.5, 40.3], "Aydın - Koçarlı": [27.7, 37.7], "Çanakkale - Ayvacık": [26.4, 39.6],
+        "Tekirdağ - Hayrabolu": [27.1, 41.2], "Mardin - Çamurlu": [40.7, 37.3], "Kırklareli - Hamitabat": [27.3, 41.4], "Düzce - Akçakoca": [31.1, 41.0],
+        "Ovaakça": [29.0, 40.3], "Aliağa": [26.9, 38.8], "Hamitabat": [27.3, 41.4], "Ambarlı": [28.6, 40.9], "Gebze": [29.4, 40.8],
+        "Çanakkale - Çan": [27.0, 40.0], "Manisa - Soma": [27.6, 39.1], "Muğla - Kemerköy": [27.9, 37.0], "Muğla - Yatağan": [28.1, 37.3],
+        "Kütahya - Değirmisaz": [29.5, 39.5], "Kütahya - Tunçbilek": [29.4, 39.6], "Kütahya - Tavşanlı": [29.4, 39.5], "Kütahya - Seyitömer": [29.8, 39.5],
+        "Sivas - Kangal": [37.2, 39.2], "Kahramanmaraş - Afşin Elbistan": [37.0, 38.2], "Bursa - Orhaneli": [28.9, 39.9],
+        "Batman": [41.1, 37.8], "Kırıkkale - Orta Anadolu": [33.5, 39.8], "İzmit - Tüpraş": [29.9, 40.7], "İzmir - Aliağa": [26.9, 38.8], "Mersin - Ataş": [34.6, 36.8],
+        "Denizli - Kızıldere": [28.8, 37.9], "Aydın - Germencik": [27.6, 37.8], "Afyon": [30.5, 38.7],
+        "Konya": [32.48, 37.86], "Elazığ": [39.22, 38.68]
+    };
+
+    const rawData = {
+      "madenler": {
+        "bor": ["Bandırma", "Emet", "Bursa", "Eskişehir", "Kütahya"],
+        "demir": ["Balıkesir - Eymir", "İzmir - Torbalı", "Kayseri - Faraşa", "Sivas - Divriği", "Malatya - Hasançelebi", "Malatya - Hekimhan", "Niğde", "Adana", "Sakarya - Çamdağı", "Bingöl", "Hatay"],
+        "krom": ["Elazığ - Guleman", "Bursa - Harmancık", "Muğla - Fethiye", "Muğla - Köyceğiz", "Muğla - Dalaman", "Bayburt - Kop Dağı", "Eskişehir - Mihalıççık"],
+        "bakır": ["Elazığ - Maden", "Diyarbakır", "Artvin - Murgul", "Kastamonu - Küre", "Samsun", "Rize - Çayeli"],
+        "boksit": ["Konya - Seydişehir", "Antalya - Akseki", "Zonguldak - Kokaksu", "Hatay - Payas"],
+        "altın": ["İzmir - Bergama", "İzmir - Efemçukuru", "Uşak", "Gümüşhane", "Artvin - Cerattepe"],
+        "manyezit": ["Bursa", "Kütahya", "Eskişehir", "Konya", "Erzincan"],
+        "manganez": ["Zonguldak", "Kastamonu", "Denizli - Tavas", "Burdur", "Adana - Ceyhan", "Artvin - Borçka", "Balıkesir"],
+        "feldispat": ["Manisa - Demirci", "Bilecik - Söğüt", "Muğla - Milas", "Kütahya - Simav", "Aydın - Çine"],
+        "barit": ["Alanya", "Elbistan", "Çanakkale", "Eskişehir", "Giresun", "Muş"],
+        "tuz": ["İzmir - Çamaltı", "Tuz Gölü", "Çankırı", "Yozgat - Yerköy", "Nevşehir - Gülşehir", "Iğdır - Tuzluca"],
+        "perlit": ["Van", "Erzincan", "İzmir", "Erzurum", "Nevşehir", "Çanakkale", "Manisa", "Çankırı"],
+        "kursun_cinko": ["Elazığ", "Kayseri", "Çanakkale", "Yozgat", "Giresun"],
+        "asbest": ["İzmir", "Bursa", "Hatay - İskenderun", "Sivas"],
+        "bentonit": ["Edirne - Enez", "Çanakkale", "Kütahya", "Manisa", "Ordu", "Tokat"]
+      },
+      "enerji": {
+        "dogalgaz": ["Tekirdağ - Hayrabolu", "Mardin - Çamurlu", "Kırklareli - Hamitabat", "Düzce - Akçakoca"],
+        "dogalgaz_termik_santralleri": ["Ovaakça", "Bandırma", "Aliağa", "Hamitabat", "Ambarlı", "Gebze"],
+        "linyit_termik_santralleri": ["Çanakkale - Çan", "Manisa - Soma", "Muğla - Kemerköy", "Muğla - Yatağan", "Kütahya - Değirmisaz", "Kütahya - Tunçbilek", "Kütahya - Tavşanlı", "Kütahya - Seyitömer", "Sivas - Kangal", "Kahramanmaraş - Afşin Elbistan", "Bursa - Orhaneli"],
+        "petrol_rafineleri": ["Batman", "Kırıkkale - Orta Anadolu", "İzmit - Tüpraş", "İzmir - Aliağa", "Mersin - Ataş"],
+        "jeotermal_santraller": ["Denizli - Kızıldere", "Aydın - Germencik", "Afyon", "Çanakkale"]
+      }
+    };
+
+    const nameMap = {
+        "bor": "Bor", "demir": "Demir", "krom": "Krom", "bakır": "Bakır", "boksit": "Boksit", "altın": "Altın", "manyezit": "Manyezit", "manganez": "Manganez", "feldispat": "Feldispat", "barit": "Barit", "tuz": "Tuz", "perlit": "Perlit", "kursun_cinko": "Kurşun & Çinko", "asbest": "Asbest", "bentonit": "Bentonit",
+        "dogalgaz": "Doğalgaz Çıkarımı", "dogalgaz_termik_santralleri": "Doğalgaz Santrali", "linyit_termik_santralleri": "Linyit Santrali", "petrol_rafineleri": "Petrol Rafinerisi", "jeotermal_santraller": "Jeotermal Santral"
+    };
+
+    const audioController = {
+        ctx: null,
+        init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+        play: function(type) {
+            if (!this.ctx) this.init();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+            const now = this.ctx.currentTime; const gain = this.ctx.createGain(); gain.connect(this.ctx.destination);
+            if (type === 'success') {
+                const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'error') {
+                const osc = this.ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+            }
+        }
+    };
+
+    const game = {
+        questions: [],
+        currentIndex: 0,
+        score: 0,
+        correctCount: 0,
+        isClickable: true,
+        
+        // Harita Projeksiyon Ayarları
+        svg: null, geoBounds: { minLon: 25.5, maxLon: 44.5, minLat: 35.5, maxLat: 42.5 }, 
+        viewBox: { w: 1000, h: 450 }, scale: 1, offsetX: 0, offsetY: 0,
+
+        init: function() {
+            lucide.createIcons();
+            document.body.addEventListener('click', () => audioController.init(), { once: true });
+            
+            // Veriden yeterli (>=4 lokasyon) uzunluktaki madenleri havuz olarak al.
+            this.generateQuestions();
+            this.fetchMapData();
+        },
+
+        generateQuestions: function() {
+            let pool = [];
+            for(let cat in rawData) {
+                for(let res in rawData[cat]) {
+                    if(rawData[cat][res].length >= 4) { // En az 4 doğru lokasyonu olanları al
+                        pool.push({
+                            key: res, 
+                            name: nameMap[res], 
+                            locations: rawData[cat][res]
+                        });
+                    }
+                }
+            }
+            
+            // Havuzdan rastgele 10 maden seç
+            pool = pool.sort(() => Math.random() - 0.5).slice(0, 10);
+            const allValidLocations = Object.keys(baseCoords);
+
+            this.questions = pool.map(res => {
+                // 4 adet doğru konum seç
+                let correctLocs = [...res.locations].sort(() => Math.random() - 0.5).slice(0, 4);
+                
+                // 1 adet rastgele YANLIŞ konum seç (Madenin çıkmadığı bir yer)
+                let possibleWrongLocs = allValidLocations.filter(loc => !res.locations.includes(loc));
+                let wrongLoc = possibleWrongLocs[Math.floor(Math.random() * possibleWrongLocs.length)];
+                
+                // Şıkları oluştur ve karıştır
+                let options = [...correctLocs, wrongLoc].map(loc => ({
+                    name: loc,
+                    isWrongLocation: loc === wrongLoc, // Aradığımız cevap bu!
+                    coords: baseCoords[loc] || [35, 39]
+                }));
+                options = options.sort(() => Math.random() - 0.5);
+                
+                // A, B, C, D, E harflerini ata
+                options.forEach((opt, index) => {
+                    opt.letter = String.fromCharCode(65 + index);
+                });
+
+                return {
+                    resourceName: res.name,
+                    options: options
+                };
+            });
+        },
+
+        fetchMapData: function() {
+            fetch(MAP_DATA_URL)
+                .then(r => r.json())
+                .then(data => {
+                    this.setupMapProjection(data);
+                    document.getElementById('loading-screen').style.display = 'none';
+                    this.loadQuestion();
+                })
+                .catch(err => {
+                    document.getElementById('loading-screen').innerHTML = "<p class='text-red-500 font-bold'>Harita yüklenemedi. İnternet bağlantınızı kontrol edin.</p>";
+                });
+        },
+
+        setupMapProjection: function(data) {
+            this.svg = document.getElementById('game-map');
+            const layerProvinces = document.getElementById('layer-provinces');
+
+            const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+            const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+            const padding = 20;
+            this.scale = Math.min((this.viewBox.w - 2 * padding) / lonSpan, (this.viewBox.h - 2 * padding) / latSpan);
+            this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+            this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
+
+            let pathD = "";
+            data.features.forEach(f => {
+                const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : (f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates]);
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        pathD += "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]);
+                            pathD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                            if (i === 0) pathD += "L";
+                        });
+                        pathD += "Z ";
+                    });
+                });
+            });
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathD);
+            path.setAttribute("class", "province-path");
+            layerProvinces.appendChild(path);
+        },
+
+        project: function(lon, lat) {
+            return { 
+                x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
+                y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
+            };
+        },
+
+        loadQuestion: function() {
+            if (this.currentIndex >= this.questions.length) {
+                this.endGame();
+                return;
+            }
+
+            const q = this.questions[this.currentIndex];
+            this.isClickable = true;
+
+            // UI Güncelle
+            document.getElementById('q-current').innerText = this.currentIndex + 1;
+            document.getElementById('score-display').innerText = `${this.score} Puan`;
+            document.getElementById('question-resource').innerText = q.resourceName;
+
+            // Şıkları ve Harita Markerlarını Çiz
+            const optionsContainer = document.getElementById('options-container');
+            const markerLayer = document.getElementById('layer-markers');
+            
+            optionsContainer.innerHTML = '';
+            markerLayer.innerHTML = '';
+
+            q.options.forEach((opt, i) => {
+                // --- 1. Haritaya Marker Ekle ---
+                const p = this.project(opt.coords[0], opt.coords[1]);
+                
+                // Konumu koruyan dış kapsayıcı grup
+                const gOuter = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gOuter.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+
+                // CSS transform animasyonunun uygulanacağı iç grup (konumu bozmadan kendi içinde büyür)
+                const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gInner.setAttribute("class", "map-marker");
+                gInner.style.animationDelay = `${i * 0.1}s`;
+
+                // Sarı damla / Pin
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", "10"); // Harita küçük olduğu için pini büyük yapıyoruz
+                circle.setAttribute("class", "marker-circle");
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("class", "marker-text");
+                text.textContent = opt.letter;
+
+                gInner.appendChild(circle);
+                gInner.appendChild(text);
+                
+                gOuter.appendChild(gInner);
+                markerLayer.appendChild(gOuter);
+
+                // --- 2. Şık Butonunu Ekle ---
+                const btn = document.createElement('button');
+                btn.className = "option-btn";
+                btn.innerHTML = `
+                    <div class="option-letter">${opt.letter}</div>
+                    <div class="option-text">${opt.name}</div>
+                `;
+                btn.onclick = () => this.handleAnswer(opt, btn, q.options);
+                optionsContainer.appendChild(btn);
+            });
+        },
+
+        handleAnswer: function(selectedOpt, btnElement, allOptions) {
+            if (!this.isClickable) return;
+            this.isClickable = false;
+
+            const optionsContainer = document.getElementById('options-container');
+            const buttons = optionsContainer.querySelectorAll('.option-btn');
+
+            // Kullanıcı "hangisinde BULUNMAZ" sorusuna yanlış olan yeri bularak "doğru" cevap vermeli
+            if (selectedOpt.isWrongLocation) {
+                audioController.play('success');
+                btnElement.classList.add('correct');
+                this.score += 10;
+                this.correctCount++;
+            } else {
+                audioController.play('error');
+                btnElement.classList.add('wrong');
+                
+                // Doğru olan (Madenin bulunmadığı) şıkkı yeşile boyayarak göster
+                allOptions.forEach((opt, idx) => {
+                    if (opt.isWrongLocation) {
+                        buttons[idx].classList.add('correct');
+                    }
+                });
+            }
+
+            document.getElementById('score-display').innerText = `${this.score} Puan`;
+
+            // 1.5 saniye bekle ve diğer soruya geç
+            setTimeout(() => {
+                this.currentIndex++;
+                this.loadQuestion();
+            }, 1500);
+        },
+
+        endGame: function() {
+            document.getElementById('final-score').innerText = this.score;
+            document.getElementById('final-correct').innerText = `${this.correctCount}/10`;
+            
+            this.triggerConfetti();
+            document.getElementById('modal-overlay').classList.add('active');
+        },
+
+        triggerConfetti: function() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200 };
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) { return clearInterval(interval); }
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+    };
+
+    window.onload = () => game.init();
+</script>
+</body>
+</html>
