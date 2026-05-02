@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye Barajları - Coğrafya Oyunları</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* --- THEME (Dark & Modern - Energy Focus) --- */
+            --bg-body: #020617;         
+            --bg-dots: #1e293b;         
+            --panel-bg: #0f172a;        
+            --panel-border: #1e293b;    
+            --text-primary: #e2e8f0;    
+            --text-secondary: #64748b;  
+            
+            /* Baraj / Enerji Temalı Vurgular */
+            --accent-primary: #f59e0b;  /* Amber 500 - Enerji/Elektrik Rengi */
+            --accent-glow: rgba(245, 158, 11, 0.3);  
+            --accent-warn: #ef4444;     
+            --accent-danger: #ef4444;   
+            --accent-success: #10b981;  
+
+            --glass-bg: rgba(15, 23, 42, 0.90); 
+            --map-bg: #0f172a;          
+            --map-border: #334155;      
+            --map-grad-start: #1e293b;
+            --map-grad-end: #020617;
+
+            --province-fill: #1e293b;   
+            --province-stroke: #334155; 
+
+            /* Arka Plan Nehir Renkleri */
+            --river-stroke: #0ea5e9;      
+            --river-opacity: 0.3; /* Nehirler sadece arka plan olduğu için silik */
+            
+            /* Marker (Baraj) Renkleri */
+            --marker-fill: #f59e0b;       
+            --marker-stroke: #ffffff;     
+            --marker-found-fill: #10b981; /* Bulununca Yeşil */
+            
+            --city-text: #475569;
+            --city-dot: #334155;
+        }
+
+        body.light-mode {
+            --bg-body: #f8fafc;         
+            --bg-dots: #e2e8f0;         
+            --panel-bg: #ffffff;        
+            --panel-border: #cbd5e1;    
+            --text-primary: #0f172a;    
+            --text-secondary: #64748b;  
+            --accent-primary: #d97706;  /* Darker Amber */
+            --map-bg: #f1f5f9;          
+            --map-grad-start: #f8fafc;
+            --map-grad-end: #e2e8f0;
+            --province-fill: #ffffff;   
+            --province-stroke: #cbd5e1; 
+            
+            --river-stroke: #38bdf8;
+            --river-opacity: 0.6;
+
+            --marker-fill: #d97706;
+            --marker-stroke: #ffffff;
+            --marker-found-fill: #059669;
+            
+            --city-text: #94a3b8;
+        }
+
+        body { 
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: var(--bg-body);
+            background-image: radial-gradient(var(--bg-dots) 1px, transparent 1px);
+            background-size: 24px 24px;
+            color: var(--text-primary);
+            overflow: hidden; 
+            user-select: none;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* --- UI COMPONENTS --- */
+        header, footer {
+            background-color: var(--glass-bg);
+            border-color: var(--panel-border);
+            backdrop-filter: blur(12px);
+            z-index: 50;
+            transition: background-color 0.5s ease, border-color 0.5s ease;
+        }
+
+        .theme-toggle-btn {
+            width: 36px; height: 36px;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--panel-bg);
+            border: 2px solid var(--panel-border);
+            border-radius: 10px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .theme-toggle-btn:hover { color: var(--accent-primary); border-color: var(--accent-primary); }
+
+        .stats-bar {
+            display: flex; gap: 1rem;
+            padding: 0.5rem 1rem;
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--panel-border);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stat-chip {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 8px;
+            background: var(--bg-body);
+            border: 1px solid var(--panel-border);
+            min-width: 70px;
+        }
+        .stat-label { font-size: 0.6rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); }
+        .stat-value { font-size: 1rem; font-weight: 800; line-height: 1.1; }
+
+        #question-panel {
+            background: var(--panel-bg);
+            border: 2px solid var(--accent-primary);
+            border-radius: 1rem;
+            padding: 0.75rem 1.5rem;
+            box-shadow: 0 0 20px -5px var(--accent-glow);
+            display: flex; align-items: center; justify-content: center; gap: 1.5rem;
+            width: fit-content; max-width: 90vw; 
+            position: absolute; 
+            top: 10px; 
+            left: 50%; 
+            transform: translateX(-50%);
+            z-index: 40; 
+            transition: all 0.3s;
+        }
+        .target-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-secondary); font-weight: 700; }
+        .target-name { font-size: clamp(1rem, 2.5vw, 1.5rem); font-weight: 900; color: var(--accent-primary); white-space: nowrap; }
+
+        #hint-btn {
+            background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white; font-weight: 700; font-size: 0.75rem; padding: 0.5rem 0.8rem;
+            border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.4);
+            display: flex; align-items: center; gap: 0.4rem; cursor: pointer;
+            transition: transform 0.1s;
+        }
+        #hint-btn:active { transform: scale(0.95); }
+
+        /* HINT POPUP */
+        #hint-popup {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 450px;
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.99));
+            border: 1px solid rgba(255, 255, 255, 0.1); border-top: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 20px; padding: 1.5rem; color: var(--text-primary);
+            z-index: 60; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.6);
+            backdrop-filter: blur(16px); opacity: 0; pointer-events: none;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center;
+        }
+        #hint-popup::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: #0ea5e9; }
+        #hint-popup.visible { opacity: 1; bottom: 50px; pointer-events: auto; transform: translateX(-50%) scale(1); }
+        .hint-icon-wrapper { width: 48px; height: 48px; border-radius: 50%; background: rgba(14, 165, 233, 0.1); color: #0ea5e9; display: flex; align-items: center; justify-content: center; }
+        .hint-title { font-size: 0.75rem; color: #0ea5e9; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; }
+        .hint-text { font-size: 0.95rem; line-height: 1.6; color: #cbd5e1; font-weight: 500; }
+        .hint-close-btn { background: #0ea5e9; color: white; border: none; padding: 10px 28px; border-radius: 12px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 8px; }
+        .hint-close-btn:hover { background: #0284c7; transform: translateY(-2px); }
+
+        /* Mobile Menu */
+        #mobile-menu {
+            transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            max-height: 0; opacity: 0; overflow: hidden;
+        }
+        #mobile-menu.open { max-height: 400px; opacity: 1; }
+
+        /* --- MAP & MARKERS --- */
+        #map-container {
+            flex-grow: 1; position: relative;
+            background-color: var(--map-bg);
+            background-image: radial-gradient(circle at 50% 50%, var(--map-grad-start) 0%, var(--map-grad-end) 100%);
+            overflow: hidden; width: 100%;
+        }
+
+        .province-path {
+            fill: var(--province-fill); stroke: var(--province-stroke); stroke-width: 0.5px;
+            pointer-events: none;
+        }
+        
+        .city-label { fill: var(--city-text); font-weight: 500; font-size: 6px; pointer-events: none; }
+
+        /* RIVER STYLES (Background Only) */
+        .river-path {
+            fill: none; stroke: var(--river-stroke); stroke-width: 2px;
+            stroke-linecap: round; stroke-linejoin: round;
+            opacity: var(--river-opacity); pointer-events: none;
+            vector-effect: non-scaling-stroke;
+        }
+
+        /* DAM MARKERS (Interactive Points) */
+        .game-marker { cursor: pointer; pointer-events: auto; }
+        .marker-content { transform-origin: center; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        /* Baraj ikonu şekli */
+        .marker-shape {
+            fill: var(--marker-fill);
+            stroke: var(--marker-stroke);
+            stroke-width: 1px; /* Daha ince çerçeve */
+            transition: fill 0.3s, transform 0.3s;
+            vector-effect: non-scaling-stroke;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+        
+        /* İç detay (şerit) */
+        .marker-detail {
+            fill: white; opacity: 0.8; pointer-events: none;
+        }
+        
+        .game-marker:hover .marker-shape { 
+            transform: scale(1.8); /* Daha fazla büyüme efekti ama baz şekil küçük */
+            filter: drop-shadow(0 0 8px var(--accent-primary));
+        }
+        
+        .game-marker.found .marker-shape { 
+            fill: var(--marker-found-fill) !important; 
+            transform: scale(1.5); 
+            filter: drop-shadow(0 0 5px var(--accent-success));
+        }
+
+        .path-label {
+            fill: var(--text-primary); font-family: 'Inter', sans-serif; font-weight: 800; font-size: 4px; /* Daha küçük font */
+            pointer-events: none; stroke: var(--bg-body); stroke-width: 1.5px; stroke-linejoin: round; /* Daha ince dış kontur */
+            paint-order: stroke; opacity: 0; animation: fadeIn 0.5s ease-out forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Helper Animations */
+        .pulse-text { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        .score-float { position: absolute; font-weight: 900; font-size: 1.5rem; pointer-events: none; animation: floatUp 0.6s ease-out forwards; z-index: 1000; }
+        @keyframes floatUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-20px); opacity: 0; } }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        .loader { width: 48px; height: 48px; border: 5px solid var(--panel-border); border-bottom-color: var(--accent-primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Game Over Modal */
+        #game-over-modal { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        .modal-content { background: var(--panel-bg); border: 2px solid var(--panel-border); border-radius: 1rem; padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); }
+
+        /* --- INFO MODAL --- */
+        #info-modal { background-color: rgba(2, 6, 23, 0.85); backdrop-filter: blur(16px); transition: opacity 0.4s; perspective: 1000px; }
+        #info-card {
+            background: linear-gradient(145deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+            border: 1px solid rgba(255, 255, 255, 0.08); border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 24px; transform: scale(0.95) translateY(20px) rotateX(10deg); opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; overflow: hidden;
+        }
+        #info-modal.active { opacity: 1; pointer-events: auto; }
+        #info-modal.active #info-card { transform: scale(1) translateY(0) rotateX(0deg); opacity: 1; }
+        #info-modal:not(.active) { opacity: 0; pointer-events: none; }
+        .card-glow-strip { position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent-primary); box-shadow: 0 0 20px var(--accent-primary); z-index: 20; }
+        
+        .continue-btn { background: var(--accent-primary); color: #fff; position: relative; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3); }
+        .continue-btn:hover { transform: translateY(-2px); filter: brightness(1.1); }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+
+    <!-- Loading -->
+    <div id="loading-overlay" class="fixed inset-0 z-[60] bg-[var(--bg-body)] flex items-center justify-center">
+        <div class="text-center">
+            <span class="loader mb-6"></span>
+            <h2 class="text-xl font-bold tracking-tight" style="color:var(--text-primary)">Harita Yükleniyor...</h2>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="border-b-2 border-[var(--panel-border)]">
+        <div class="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between relative bg-inherit">
+            <div class="flex items-center gap-6">
+                <div class="flex items-center gap-2 select-none cursor-pointer group" onclick="location.reload()">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center border-2 transition-transform group-hover:scale-105" 
+                         style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary);">
+                        <i data-lucide="zap" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-black text-sm leading-tight tracking-tight" style="color: var(--text-primary)">TÜRKİYE BARAJLARI</h1>
+                        <p class="text-[9px] font-bold tracking-widest uppercase" style="color: var(--text-secondary)">Harita Oyunu</p>
+                    </div>
+                </div>
+                <nav class="hidden md:flex items-center gap-4 border-l border-[var(--panel-border)] pl-4 h-8">
+                    <!-- ANASAYFA LİNKİ -->
+                    <a href="index.html" class="flex items-center gap-1 text-xs font-bold hover:text-[var(--accent-primary)] transition-colors" style="color: var(--text-secondary)">
+                        <i data-lucide="home" class="w-3 h-3"></i>
+                        ANASAYFA
+                    </a>
+                    <span class="text-[10px] text-[var(--text-secondary)]">/</span>
+                    <span class="nav-link text-xs text-[var(--text-primary)] cursor-pointer">Türkiye Geneli</span>
+                    <span class="text-[10px] text-[var(--text-secondary)]">/</span>
+                    <span class="text-xs font-bold text-[var(--accent-primary)]">Oyun</span>
+                </nav>
+            </div>
+            <div class="flex items-center gap-2">
+                <!-- ANASAYFA İKONU -->
+                <a href="index.html" class="theme-toggle-btn" title="Anasayfa">
+                    <i data-lucide="home" class="w-4 h-4"></i>
+                </a>
+                <button onclick="game.toggleAudio()" class="theme-toggle-btn" title="Sesi Aç/Kapat">
+                    <i data-lucide="volume-2" class="w-4 h-4 sound-on-icon"></i>
+                    <i data-lucide="volume-x" class="w-4 h-4 sound-off-icon hidden"></i>
+                </button>
+                <button onclick="game.toggleTheme()" class="theme-toggle-btn" title="Tema Değiştir">
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark-icon"></i>
+                    <i data-lucide="moon" class="w-4 h-4 light-icon"></i>
+                </button>
+                <button onclick="toggleMobileMenu()" class="md:hidden theme-toggle-btn ml-1">
+                    <i data-lucide="menu" id="menu-icon" class="w-4 h-4"></i>
+                    <i data-lucide="x" id="close-icon" class="w-4 h-4 hidden"></i>
+                </button>
+            </div>
+        </div>
+        <!-- MOBILE MENU -->
+        <div id="mobile-menu" class="md:hidden bg-[var(--panel-bg)] border-b border-[var(--panel-border)] w-full absolute top-16 left-0 z-40 shadow-xl">
+            <div class="p-4 flex flex-col gap-2">
+                <a href="index.html" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm flex items-center gap-2">
+                    <i data-lucide="home" class="w-4 h-4"></i> Anasayfa
+                </a>
+                <a href="#" onclick="location.reload()" class="block px-4 py-3 font-semibold text-[var(--text-primary)] hover:bg-[var(--bg-dots)] rounded-lg text-sm flex items-center gap-2">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Yeniden Başlat
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col relative overflow-hidden">
+        <div class="stats-bar z-10 shadow-sm">
+            <div class="stat-chip">
+                <span class="stat-label">Süre</span>
+                <span class="stat-value" style="color: var(--text-primary)" id="timer">00:00</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">Puan</span>
+                <span class="stat-value" style="color: var(--accent-success)" id="score">0</span>
+            </div>
+            <!-- BAŞARI YÜZDESİ EKLENDİ -->
+            <div class="stat-chip hidden sm:flex">
+                <span class="stat-label">Doğruluk</span>
+                <span class="stat-value" style="color: var(--accent-primary)" id="accuracy">100%</span>
+            </div>
+            <div class="stat-chip">
+                <span class="stat-label">Kalan</span>
+                <span class="stat-value" style="color: var(--text-secondary)" id="remaining">0</span>
+            </div>
+        </div>
+
+        <div id="map-container">
+            <div id="question-panel" class="opacity-0 pointer-events-none">
+                <div class="text-content-wrapper">
+                    <div class="target-label">HEDEF BARAJ</div>
+                    <div class="target-name pulse-text" id="target-name">...</div>
+                </div>
+                <button onclick="game.hint()" id="hint-btn"><i data-lucide="map-pin" class="w-3 h-3"></i> BÖLGE İPUCU</button>
+            </div>
+
+            <!-- HINT POPUP -->
+            <div id="hint-popup">
+                <div class="hint-icon-wrapper"><i data-lucide="info" class="w-6 h-6"></i></div>
+                <div class="hint-title">İPUCU</div>
+                <div class="hint-text" id="hint-text-content"></div>
+                <button class="hint-close-btn" onclick="game.closeHint()">ANLADIM <i data-lucide="check" class="w-4 h-4"></i></button>
+            </div>
+
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="map-content">
+                    <g id="layer-provinces"></g>
+                    <g id="layer-rivers"></g> 
+                    <g id="layer-labels"></g> 
+                    <g id="layer-markers"></g>
+                </g>
+            </svg>
+
+            <!-- Status Message -->
+            <div id="status-msg" class="absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all opacity-0 translate-y-4 pointer-events-none z-50 flex items-center gap-2 border-2"></div>
+        </div>
+    </main>
+    
+    <!-- Info Modal -->
+    <div id="info-modal" class="fixed inset-0 z-[70] flex items-center justify-center p-4">
+        <div id="info-card" class="rounded-3xl p-0 max-w-sm w-full relative">
+             <div class="card-glow-strip"></div>
+             <div class="relative px-6 pt-10 pb-2 text-center z-10">
+                 <div class="relative inline-flex items-center justify-center w-16 h-16 mb-4">
+                    <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-lg bg-emerald-500 text-white">
+                        <i data-lucide="check" class="w-7 h-7 stroke-[3px]"></i>
+                    </div>
+                 </div>
+                 <h3 class="text-3xl font-black mb-2 tracking-tight text-white drop-shadow-md" id="info-title">Baraj Adı</h3>
+             </div>
+             <div class="px-8 pb-8 pt-4 relative z-10">
+                 <div class="p-0 space-y-3 text-center">
+                     <div class="text-[12px] font-bold text-amber-400 bg-amber-900/30 py-2 rounded-lg border border-amber-700/50">
+                        <i data-lucide="waves" class="w-4 h-4 inline-block mr-1 align-text-bottom"></i>
+                        <span id="info-river">Bulunduğu Akarsu</span>
+                     </div>
+                     <p class="text-[13px] leading-relaxed font-medium text-slate-300" id="info-desc">Açıklama</p>
+                 </div>
+                 <button onclick="game.closeInfo()" class="continue-btn w-full mt-6 py-4 rounded-xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 group">
+                     <span>Devam Et</span>
+                     <i data-lucide="arrow-right" class="w-4 h-4 transition-transform group-hover:translate-x-1"></i>
+                 </button>
+             </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-[var(--panel-border)] z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-2">
+            <div class="text-[10px] font-medium" style="color: var(--text-secondary)">&copy; 2024 Coğrafya Oyunları.</div>
+            <div class="flex items-center gap-2 px-3 py-1 rounded-full border border-[var(--panel-border)] bg-[var(--panel-bg)]">
+                <i data-lucide="code-2" class="w-3 h-3" style="color: var(--accent-primary)"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider" style="color: var(--text-secondary)">Ali Ataş</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Game Over Modal -->
+    <div id="game-over-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <div class="modal-content w-full max-w-sm text-center">
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 border-2" style="background: var(--panel-bg); border-color: var(--accent-primary); color: var(--accent-primary)">
+                <i data-lucide="zap" class="w-8 h-8"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-2" style="color: var(--text-primary)">Görev Tamamlandı!</h2>
+            <p class="mb-6 text-xs" style="color: var(--text-secondary)">Haritadaki tüm barajları buldunuz.</p>
+            <div class="space-y-3 mb-6">
+                <!-- GRID YAPISI EKLENDİ (PUAN VE BAŞARI) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Toplam Puan</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-success)" id="final-score">0</span>
+                    </div>
+                    <div class="p-3 rounded-lg border border-[var(--panel-border)] bg-[var(--bg-body)]">
+                        <span class="text-[10px] font-bold uppercase block mb-1" style="color: var(--text-secondary)">Başarı</span>
+                        <span class="text-xl font-bold" style="color: var(--accent-primary)" id="final-accuracy">0%</span>
+                    </div>
+                </div>
+            </div>
+            <!-- ANASAYFAYA DÖNÜŞ VE TEKRAR OYNA BUTONLARI -->
+            <button onclick="location.reload()" class="w-full py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border shadow-lg hover:-translate-y-0.5 bg-amber-500 text-white border-amber-600">Tekrar Oyna</button>
+            <button onclick="location.href='index.html'" class="w-full mt-3 py-3 rounded-lg font-bold text-sm uppercase tracking-wider transition-all border hover:bg-[var(--bg-dots)]" style="color: var(--text-secondary); border-color: var(--panel-border)">Anasayfa</button>
+        </div>
+    </div>
+
+    <script>
+        // Harita verisi belirtilen github adresi ile güncellendi
+        const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
+
+        // GÖRSELDEKİ BARAJLARA GÖRE HAZIRLANMIŞ VERİ SETİ (Noktalar)
+        // KOORDİNATLAR: Daha rahat tıklanabilmesi için birbirine çok yakın olanlar görsel olarak "yayılmıştır".
+        const damData = [
+            // Fırat Üzerindekiler
+            { id: 1, ad: "Keban Barajı", river: "Fırat Nehri", region: "Doğu Anadolu Bölgesi", ozellik: "Elazığ'da yer alır. Yapıldığı dönemde Türkiye'nin en büyük, günümüzde ise Atatürk ve Karakaya'dan sonra 3. büyük hidroelektrik santralidir.", coords: [39.0, 39.0], labelDx: 0, labelDy: -8 },
+            { id: 2, ad: "Karakaya Barajı", river: "Fırat Nehri", region: "Doğu Anadolu Bölgesi", ozellik: "Diyarbakır-Malatya sınırında bulunur. Atatürk Barajı'ndan sonra ülkenin en çok elektrik üreten 2. barajıdır.", coords: [38.4, 38.4], labelDx: -10, labelDy: 8 },
+            { id: 3, ad: "Atatürk Barajı", river: "Fırat Nehri", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Şanlıurfa-Adıyaman sınırında yer alır. Türkiye'nin ve Avrupa'nın en büyük, dünyanın ise sayılı barajlarından biridir. GAP'ın kalbidir.", coords: [37.5, 38.2] },
+            { id: 26, ad: "Birecik Barajı", river: "Fırat Nehri", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Şanlıurfa-Gaziantep sınırında bulunur, taşkın koruma ve enerji amaçlıdır.", coords: [37.0, 37.9], labelDx: 15, labelDy: -5 },
+            { id: 4, ad: "Karkamış Barajı", river: "Fırat Nehri", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Gaziantep sınırları içinde, Fırat Nehri'nin Türkiye sınırlarını terk etmeden önceki son barajıdır.", coords: [36.5, 38.0], labelDx: 0, labelDy: 10 },
+            
+            // Dicle Üzerindekiler
+            { id: 5, ad: "Kralkızı Barajı", river: "Dicle Nehri", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Diyarbakır'ın Dicle ilçesinde, Dicle Nehri'nin ana kollarından Maden Çayı üzerinde yer alır.", coords: [38.5, 39.8], labelDx: -15, labelDy: -8 },
+            { id: 6, ad: "Devegeçidi Barajı", river: "Dicle Havzası", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Diyarbakır'da, Dicle Nehri'nin kollarından Devegeçidi Suyu üzerinde sulama amaçlı kurulmuştur.", coords: [37.7, 40.3], labelDx: 20, labelDy: 5 },
+            { id: 27, ad: "Batman Barajı", river: "Dicle (Batman Çayı)", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Batman ve Diyarbakır illeri arasında sulama ve enerji amaçlıdır.", coords: [38.2, 41.2], labelDx: 0, labelDy: -10 },
+            { id: 7, ad: "Ilısu (Veysel Eroğlu) Barajı", river: "Dicle Nehri", region: "Güneydoğu Anadolu Bölgesi", ozellik: "Mardin-Şırnak sınırında yer alır. Dicle nehri üzerindeki en büyük hidroelektrik santralidir.", coords: [37.2, 41.6], labelDx: 0, labelDy: 10 },
+
+            // Ceyhan Üzerindekiler (Çok yakın oldukları için biraz daha yayıldılar)
+            { id: 8, ad: "Sır Barajı", river: "Ceyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Kahramanmaraş sınırları içinde yer alan önemli bir hidroelektrik santralidir.", coords: [37.6, 36.5], labelDx: -15, labelDy: -5 },
+            { id: 9, ad: "Menzelet Barajı", river: "Ceyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Kahramanmaraş'ta, enerji üretimi ve taşkın koruma amacıyla inşa edilmiştir.", coords: [38.2, 37.1], labelDx: -15, labelDy: -8 },
+            { id: 10, ad: "Aslantaş Barajı", river: "Ceyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Osmaniye'de yer alır. Çukurova'nın sulanmasında ve elektrik üretiminde önemli rol oynar.", coords: [37.0, 36.0], labelDx: 15, labelDy: 10 },
+            { id: 11, ad: "Berke Barajı", river: "Ceyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Osmaniye'de yer alan, Türkiye'nin en yüksek beton kemer barajlarından biridir.", coords: [37.4, 36.7], labelDx: 15, labelDy: 5 },
+
+            // Seyhan Üzerindekiler
+            { id: 31, ad: "Çatalan Barajı", river: "Seyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Adana'nın içme suyu ihtiyacını karşılayan ve elektrik üreten önemli bir barajdır.", coords: [37.4, 35.3], labelDx: -15, labelDy: -5 },
+            { id: 12, ad: "Seyhan Barajı", river: "Seyhan Nehri", region: "Akdeniz Bölgesi", ozellik: "Adana şehrinin hemen kuzeyinde, Seyhan nehrinin taşkınlarını önlemek ve Çukurova'yı sulamak için yapılmıştır.", coords: [36.8, 35.2], labelDx: 0, labelDy: 10 },
+
+            // Manavgat Üzerindekiler
+            { id: 13, ad: "Oymapınar Barajı", river: "Manavgat Nehri", region: "Akdeniz Bölgesi", ozellik: "Antalya'da yer alır. Türkiye'nin önemli yeraltı hidroelektrik santrallerinden birine sahiptir.", coords: [36.9, 31.5] },
+
+            // Büyük Menderes Üzerindekiler
+            { id: 14, ad: "Adıgüzel Barajı", river: "Büyük Menderes", region: "Ege Bölgesi", ozellik: "Denizli sınırları içinde, Büyük Menderes nehri üzerinde enerji ve sulama amaçlıdır.", coords: [38.1, 29.1], labelDx: 15, labelDy: -8 },
+            { id: 15, ad: "Kemer Barajı", river: "Büyük Menderes (Akçay)", region: "Ege Bölgesi", ozellik: "Aydın'da, Menderes'in kolu olan Akçay üzerinde kurulmuştur.", coords: [37.7, 28.5], labelDx: -15, labelDy: 10 },
+
+            // Gediz Üzerindekiler
+            { id: 16, ad: "Demirköprü Barajı", river: "Gediz Nehri", region: "Ege Bölgesi", ozellik: "Manisa'nın Salihli ilçesinde, taşkın koruma, sulama ve enerji üretimi amacıyla kurulmuştur.", coords: [38.6, 28.3] },
+
+            // Sakarya Üzerindekiler
+            { id: 17, ad: "Sarıyar (H. Polatkan) Barajı", river: "Sakarya Nehri", region: "İç Anadolu Bölgesi", ozellik: "Ankara'da yer alır. Türkiye'nin ilk büyük hidroelektrik santrallerindendir.", coords: [40.0, 31.8], labelDx: 20, labelDy: -5 },
+            { id: 18, ad: "Gökçekaya Barajı", river: "Sakarya Nehri", region: "İç Anadolu / Marmara Sınırı", ozellik: "Eskişehir sınırlarında, Sakarya nehri üzerinde elektrik üretimi amaçlıdır.", coords: [40.7, 30.7], labelDx: -15, labelDy: 8 },
+
+            // Kızılırmak Üzerindekiler
+            { id: 28, ad: "Altınkaya Barajı", river: "Kızılırmak", region: "Karadeniz Bölgesi", ozellik: "Samsun'un Bafra ilçesinde yer alan büyük bir hidroelektrik barajıdır.", coords: [41.5, 35.5], labelDx: 0, labelDy: -10 },
+            { id: 19, ad: "Hirfanlı Barajı", river: "Kızılırmak", region: "İç Anadolu Bölgesi", ozellik: "Kırşehir-Ankara sınırında yer alır. İç Anadolu'nun en büyük baraj göllerinden birini oluşturur.", coords: [39.0, 34.3], labelDx: -20, labelDy: -8 },
+            { id: 20, ad: "Kesikköprü Barajı", river: "Kızılırmak", region: "İç Anadolu Bölgesi", ozellik: "Ankara'da, Hirfanlı barajının hemen aşağısında yer alır.", coords: [39.8, 33.3], labelDx: 0, labelDy: -10 },
+
+            // Yeşilırmak Üzerindekiler
+            { id: 21, ad: "Almus Barajı", river: "Yeşilırmak", region: "Karadeniz Bölgesi", ozellik: "Tokat ilinde Yeşilırmak üzerinde kurulmuş toprak dolgu tipi barajdır.", coords: [40.0, 37.5], labelDx: 0, labelDy: -10 },
+            { id: 22, ad: "Hasan Uğurlu Barajı", river: "Yeşilırmak", region: "Karadeniz Bölgesi", ozellik: "Samsun'da yer alır. Adını yapımı sırasında vefat eden DSİ bölge müdürü Hasan Uğurlu'dan alır.", coords: [40.6, 36.6], labelDx: -25, labelDy: -5 },
+            { id: 23, ad: "Suat Uğurlu Barajı", river: "Yeşilırmak", region: "Karadeniz Bölgesi", ozellik: "Samsun'da, Hasan Uğurlu barajının hemen çıkışında bulunur.", coords: [41.2, 36.2], labelDx: 20, labelDy: 8 },
+
+            // Çoruh Üzerindekiler (Daha rahat tıklanabilmesi için geniş yayıldılar)
+            { id: 24, ad: "Yusufeli Barajı", river: "Çoruh Nehri", region: "Karadeniz Bölgesi", ozellik: "Artvin'de bulunur. Türkiye'nin en yüksek, dünyanın ise sayılı yüksekliğe sahip kemer barajlarındandır.", coords: [40.4, 40.8], labelDx: -15, labelDy: -8 },
+            { id: 25, ad: "Deriner Barajı", river: "Çoruh Nehri", region: "Karadeniz Bölgesi", ozellik: "Artvin'de, dar ve derin Çoruh vadisinde inşa edilmiş mühendislik harikası devasa bir barajdır.", coords: [41.0, 41.4], labelDx: 15, labelDy: 10 },
+            { id: 29, ad: "Borçka Barajı", river: "Çoruh Nehri", region: "Karadeniz Bölgesi", ozellik: "Artvin Borçka'da enerji üretimi amacıyla kurulmuştur.", coords: [41.4, 41.8], labelDx: -15, labelDy: -5 },
+            { id: 30, ad: "Muratlı Barajı", river: "Çoruh Nehri", region: "Karadeniz Bölgesi", ozellik: "Artvin'de, Gürcistan sınırına en yakın barajdır.", coords: [41.7, 42.1], labelDx: -10, labelDy: -10 }
+        ];
+
+        // SADECE GÖRSEL ARKA PLAN İÇİN AKARSULAR (Tıklanamaz)
+        const bgRivers = [
+            { id: "r1", path: [[39.8, 38.2], [39.5, 37.0], [39.0, 35.5], [38.8, 34.5], [39.5, 33.5], [40.5, 34.0], [41.2, 35.0], [41.7, 36.0]] }, // Kızılırmak
+            { id: "r2", path: [[40.0, 37.5], [40.6, 36.8], [41.3, 36.5]] }, // Yeşilırmak
+            { id: "r3", path: [[38.8, 31.0], [39.5, 31.8], [40.2, 31.5], [40.8, 30.5], [41.1, 30.6]] }, // Sakarya
+            { id: "r4", path: [[38.8, 38.8], [38.0, 38.5], [37.0, 38.0], [36.6, 38.1]] }, // Fırat
+            { id: "r5", path: [[38.2, 40.0], [37.8, 40.2], [37.6, 41.0], [37.2, 42.0]] }, // Dicle
+            { id: "r6", path: [[40.2, 40.5], [40.8, 41.5], [41.6, 41.8]] }, // Çoruh
+            { id: "r7", path: [[38.2, 36.0], [37.5, 35.5], [37.0, 35.0], [36.7, 34.9]] }, // Seyhan
+            { id: "r8", path: [[38.1, 37.2], [37.6, 36.5], [37.0, 36.0], [36.6, 35.6]] }, // Ceyhan
+            { id: "r9", path: [[38.0, 30.0], [37.9, 29.0], [37.8, 28.0], [37.5, 27.2]] }, // B. Menderes
+            { id: "r10", path: [[39.0, 29.5], [38.8, 28.5], [38.6, 27.5], [38.5, 26.8]] }, // Gediz
+            { id: "r11", path: [[37.3, 31.8], [36.8, 31.5]] } // Manavgat
+        ];
+
+        const audioController = {
+            ctx: null, isMuted: false,
+            init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+            toggleMute: function() { this.isMuted = !this.isMuted; if(this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); return this.isMuted; },
+            play: function(type) {
+                if (this.isMuted) return;
+                if (!this.ctx) this.init();
+                if (this.ctx.state === 'suspended') this.ctx.resume();
+                const now = this.ctx.currentTime; const gain = this.ctx.createGain(); gain.connect(this.ctx.destination);
+                if (type === 'success') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'error') {
+                    const osc = this.ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'achievement') {
+                    [523.25, 659.25, 783.99].forEach((freq, i) => {
+                        const osc = this.ctx.createOscillator(); const g = this.ctx.createGain(); osc.type = 'sine'; osc.frequency.value = freq; osc.connect(g); g.connect(this.ctx.destination);
+                        g.gain.setValueAtTime(0, now + i*0.1); g.gain.linearRampToValueAtTime(0.1, now + i*0.1 + 0.05); g.gain.exponentialRampToValueAtTime(0.001, now + i*0.1 + 0.5); osc.start(now + i*0.1); osc.stop(now + i*0.1 + 0.5);
+                    });
+                }
+            }
+        };
+
+        const game = {
+            svg: null,
+            geoBounds: { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 },
+            viewBox: { w: 1000, h: 450 },
+            scale: 1, offsetX: 0, offsetY: 0,
+            
+            state: { 
+                score: 0, remaining: [], current: null, active: false, 
+                correct: 0, wrong: 0, /* Başarı hesaplaması için eklendi */
+                isLightMode: false, secondsElapsed: 0, timerInterval: null
+            },
+
+            init: function() {
+                this.fetchMapData();
+                lucide.createIcons();
+                document.body.addEventListener('click', () => audioController.init(), { once: true });
+                window.addEventListener('resize', () => { if(this.svg) this.loadMap(this.mapData); });
+            },
+
+            toggleTheme: function() {
+                this.state.isLightMode = !this.state.isLightMode;
+                document.body.classList.toggle('light-mode', this.state.isLightMode);
+                document.querySelector('.light-icon').classList.toggle('hidden', this.state.isLightMode);
+                document.querySelector('.dark-icon').classList.toggle('hidden', !this.state.isLightMode);
+            },
+            
+            toggleAudio: function() {
+                const isMuted = audioController.toggleMute();
+                document.querySelector('.sound-on-icon').classList.toggle('hidden', isMuted);
+                document.querySelector('.sound-off-icon').classList.toggle('hidden', !isMuted);
+            },
+
+            fetchMapData: function() {
+                fetch(MAP_DATA_URL).then(r => r.json()).then(data => {
+                    this.mapData = data; 
+                    this.loadMap(data);
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    this.start();
+                }).catch(err => {
+                    document.getElementById('loading-overlay').innerHTML = "<div class='text-red-500 font-bold'>Harita yüklenemedi. Lütfen sayfayı yenileyin.</div>";
+                });
+            },
+
+            scanCoords: function(coords) {
+                if (Array.isArray(coords) && coords.length === 2 && typeof coords[0] === 'number') {
+                    if (coords[0] < this.geoBounds.minLon) this.geoBounds.minLon = coords[0];
+                    if (coords[0] > this.geoBounds.maxLon) this.geoBounds.maxLon = coords[0];
+                    if (coords[1] < this.geoBounds.minLat) this.geoBounds.minLat = coords[1];
+                    if (coords[1] > this.geoBounds.maxLat) this.geoBounds.maxLat = coords[1];
+                } else if (Array.isArray(coords)) coords.forEach(c => this.scanCoords(c));
+            },
+
+            project: function(lon, lat) {
+                return { 
+                    x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
+                    y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
+                };
+            },
+
+            loadMap: function(data) {
+                this.svg = document.getElementById('game-map');
+                const layerProvinces = document.getElementById('layer-provinces');
+                const layerRivers = document.getElementById('layer-rivers');
+                const layerMarkers = document.getElementById('layer-markers');
+                
+                layerProvinces.innerHTML = ''; layerRivers.innerHTML = ''; layerMarkers.innerHTML = '';
+                document.getElementById('layer-labels').innerHTML = '';
+
+                this.geoBounds = { minLon: 180, maxLon: -180, minLat: 90, maxLat: -90 };
+
+                // Scan map bounds
+                data.features.forEach(f => this.scanCoords(f.geometry.coordinates));
+                
+                // Scan dam bounds to ensure they fit
+                damData.forEach(d => {
+                    const lat = d.coords[0]; const lon = d.coords[1];
+                    if (lon < this.geoBounds.minLon) this.geoBounds.minLon = lon;
+                    if (lon > this.geoBounds.maxLon) this.geoBounds.maxLon = lon;
+                    if (lat < this.geoBounds.minLat) this.geoBounds.minLat = lat;
+                    if (lat > this.geoBounds.maxLat) this.geoBounds.maxLat = lat;
+                });
+                
+                this.geoBounds.minLat -= 0.5; // Padding for bottom
+                
+                const padding = 20; 
+                const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+                const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+                const availableHeight = this.viewBox.h - 100; // Leave space for UI
+                
+                const scaleW = (this.viewBox.w - 2 * padding) / lonSpan;
+                const scaleH = (availableHeight - 2 * padding) / latSpan;
+                
+                this.scale = Math.min(scaleW, scaleH);
+                this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+                this.offsetY = this.viewBox.h - 60 - (latSpan * this.scale);
+
+                // Draw Provinces
+                data.features.forEach(f => {
+                    const d = this.createPathD(f.geometry);
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d); path.setAttribute("class", "province-path");
+                    layerProvinces.appendChild(path);
+                });
+                
+                this.drawBackgroundRivers();
+                this.drawDamMarkers();
+            },
+
+            createPathD: function(geometry) {
+                let d = "";
+                const polys = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        let ringD = "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]);
+                            ringD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                            if (i === 0) ringD += "L";
+                        });
+                        ringD += "Z "; d += ringD;
+                    });
+                });
+                return d;
+            },
+
+            drawBackgroundRivers: function() {
+                const layer = document.getElementById('layer-rivers');
+                bgRivers.forEach(river => {
+                    let d = "";
+                    const projPoints = river.path.map(pt => this.project(pt[1], pt[0]));
+                    if(projPoints.length < 2) return;
+                    
+                    d = `M ${projPoints[0].x.toFixed(1)},${projPoints[0].y.toFixed(1)}`;
+                    for (let i = 0; i < projPoints.length - 1; i++) {
+                        const p0 = i > 0 ? projPoints[i - 1] : projPoints[i];
+                        const p1 = projPoints[i]; const p2 = projPoints[i + 1];
+                        const p3 = i < projPoints.length - 2 ? projPoints[i + 2] : p2;
+                        const cp1x = p1.x + (p2.x - p0.x) / 6; const cp1y = p1.y + (p2.y - p0.y) / 6;
+                        const cp2x = p2.x - (p3.x - p1.x) / 6; const cp2y = p2.y - (p3.y - p1.y) / 6;
+                        d += ` C ${cp1x.toFixed(1)},${cp1y.toFixed(1)} ${cp2x.toFixed(1)},${cp2y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`;
+                    }
+                    
+                    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    path.setAttribute("d", d); path.setAttribute("class", "river-path");
+                    layer.appendChild(path);
+                });
+            },
+
+            drawDamMarkers: function() {
+                const layer = document.getElementById('layer-markers');
+                this.state.remaining = [...damData];
+
+                damData.forEach(dam => {
+                    // Dam coordinates are [Lat, Lon]
+                    const p = this.project(dam.coords[1], dam.coords[0]);
+                    
+                    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    g.setAttribute("class", "game-marker");
+                    g.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+                    g.setAttribute("data-id", dam.id);
+                    g.onclick = (e) => { e.stopPropagation(); this.checkAnswer(dam, g); };
+
+                    const innerG = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                    innerG.setAttribute("class", "marker-content");
+                    
+                    // Görünmez tıklama alanı
+                    const hitArea = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                    hitArea.setAttribute("r", "8"); hitArea.setAttribute("fill", "transparent");
+                    
+                    // Barajı temsil eden şekil - DAHA KÜÇÜK VE İNCE
+                    const shape = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                    shape.setAttribute("class", "marker-shape");
+                    shape.setAttribute("d", "M -2.5,-1 Q 0,-3 2.5,-1 L 3,2 L -3,2 Z"); 
+                    
+                    // İç detay (şerit)
+                    const detail = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                    detail.setAttribute("class", "marker-detail");
+                    detail.setAttribute("x", "-0.3"); detail.setAttribute("y", "-0.3");
+                    detail.setAttribute("width", "0.6"); detail.setAttribute("height", "2");
+
+                    innerG.appendChild(hitArea); 
+                    innerG.appendChild(shape);
+                    innerG.appendChild(detail);
+                    g.appendChild(innerG); 
+                    layer.appendChild(g);
+                    
+                    dam.visX = p.x; dam.visY = p.y;
+                });
+            },
+
+            start: function() {
+                this.state.active = true; 
+                this.state.score = 0; 
+                this.state.correct = 0; 
+                this.state.wrong = 0; 
+                this.state.secondsElapsed = 0;
+                
+                this.updateUI(); this.nextQuestion();
+                document.getElementById('question-panel').style.opacity = 1;
+                document.getElementById('question-panel').style.pointerEvents = 'auto';
+                
+                if(this.state.timerInterval) clearInterval(this.state.timerInterval);
+                this.state.timerInterval = setInterval(() => {
+                    if (!this.state.active) return;
+                    this.state.secondsElapsed++;
+                    const m = Math.floor(this.state.secondsElapsed / 60).toString().padStart(2, '0');
+                    const s = (this.state.secondsElapsed % 60).toString().padStart(2, '0');
+                    document.getElementById('timer').innerText = `${m}:${s}`;
+                }, 1000);
+            },
+
+            nextQuestion: function() {
+                if (this.state.remaining.length === 0) { this.endGame(); return; }
+                const idx = Math.floor(Math.random() * this.state.remaining.length);
+                this.state.current = this.state.remaining[idx];
+                document.getElementById('target-name').innerText = this.state.current.ad;
+                document.getElementById('hint-popup').classList.remove('visible');
+            },
+
+            checkAnswer: function(dam, el) {
+                if (!this.state.active) return;
+                if (this.state.remaining.find(r => r.id === dam.id) === undefined) return; // Already found
+                
+                const contentEl = el.querySelector('.marker-content');
+                
+                if (dam.id === this.state.current.id) {
+                    audioController.play('success'); 
+                    el.classList.add('found');
+                    
+                    // Add Label (Etiketleri Özel Konumlara Göre Ayarla)
+                    const labelDx = dam.labelDx || 0;
+                    const labelDy = dam.labelDy || -10;
+                    
+                    const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    label.setAttribute("class", "path-label");
+                    label.setAttribute("x", dam.visX + labelDx); 
+                    label.setAttribute("y", dam.visY + labelDy);
+                    label.setAttribute("text-anchor", "middle");
+                    label.textContent = dam.ad.replace(" Barajı", "").toUpperCase();
+                    document.getElementById('layer-labels').appendChild(label);
+                    
+                    this.state.score += 10; 
+                    this.state.correct++;
+                    this.spawnFloatingText("+10", el, "text-green-400");
+                    
+                    this.state.remaining = this.state.remaining.filter(m => m.id !== dam.id);
+                    this.updateUI();
+                    this.showStatus("Doğru!", "bg-emerald-600/90 text-white border-emerald-500");
+                    
+                    setTimeout(() => { this.showInfo(dam); }, 600); 
+                } else {
+                    audioController.play('error');
+                    contentEl.classList.add('shake'); setTimeout(() => contentEl.classList.remove('shake'), 500);
+                    this.state.score -= 5;
+                    this.state.wrong++;
+                    this.spawnFloatingText("-5", el, "text-red-400");
+                    this.updateUI();
+                    this.showStatus("Yanlış! Farklı bir noktayı dene.", "bg-red-600/90 text-white border-red-500");
+                }
+            },
+            
+            showInfo: function(dam) {
+                audioController.play('achievement');
+                document.getElementById('info-title').innerText = dam.ad;
+                document.getElementById('info-river').innerText = dam.river;
+                document.getElementById('info-desc').innerText = dam.ozellik;
+                document.getElementById('info-modal').classList.add('active');
+            },
+
+            closeInfo: function() {
+                document.getElementById('info-modal').classList.remove('active');
+                this.nextQuestion();
+            },
+
+            hint: function() {
+                if (!this.state.active || !this.state.current) return;
+                audioController.play('error'); // Soft click sound
+                this.state.score -= 3; // İpucu cezası
+                this.updateUI();
+                
+                const btn = document.getElementById('hint-btn');
+                this.spawnFloatingText("-3", btn, "text-orange-400");
+
+                const target = this.state.current;
+                const hintMsg = `Bu baraj <b>${target.region}</b> bölgesinde yer alır ve sularını <b>${target.river}</b> üzerinden toplar.`;
+                
+                document.getElementById('hint-text-content').innerHTML = hintMsg;
+                document.getElementById('hint-popup').classList.add('visible');
+            },
+            
+            closeHint: function() {
+                document.getElementById('hint-popup').classList.remove('visible');
+            },
+            
+            spawnFloatingText: function(text, el, colorClass) {
+                 const rect = el.getBoundingClientRect ? el.getBoundingClientRect() : { top: window.innerHeight/2, left: window.innerWidth/2 };
+                 const floatEl = document.createElement("div");
+                 floatEl.innerText = text; floatEl.className = `score-float ${colorClass}`;
+                 floatEl.style.left = rect.left + "px"; floatEl.style.top = rect.top + "px";
+                 document.body.appendChild(floatEl); setTimeout(() => floatEl.remove(), 1000);
+            },
+
+            showStatus: function(msg, classes) {
+                const el = document.getElementById('status-msg');
+                el.innerText = msg;
+                el.className = `absolute bottom-16 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl shadow-2xl font-bold text-sm transition-all duration-300 transform translate-y-0 opacity-100 z-50 flex items-center gap-2 border-2 ${classes}`;
+                setTimeout(() => { el.classList.replace('translate-y-0', 'translate-y-4'); el.classList.replace('opacity-100', 'opacity-0'); }, 1500);
+            },
+            
+            endGame: function() {
+                this.state.active = false;
+                clearInterval(this.state.timerInterval);
+                
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 0;
+                
+                document.getElementById('final-score').innerText = this.state.score;
+                document.getElementById('final-accuracy').innerText = accuracy + "%";
+                document.getElementById('game-over-modal').classList.remove('hidden');
+                document.getElementById('game-over-modal').classList.add('flex');
+                confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 }, colors: ['#f59e0b', '#10b981', '#3b82f6'] });
+            },
+
+            updateUI: function() {
+                document.getElementById('score').innerText = this.state.score;
+                document.getElementById('remaining').innerText = this.state.remaining.length;
+                
+                const total = this.state.correct + this.state.wrong;
+                const accuracy = total > 0 ? Math.round((this.state.correct / total) * 100) : 100;
+                document.getElementById('accuracy').innerText = accuracy + "%";
+            }
+        };
+
+        // Mobil Menü İşlevi
+        window.toggleMobileMenu = () => {
+            const menu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            if (menu.classList.contains('open')) {
+                menu.classList.remove('open'); menuIcon.classList.remove('hidden'); closeIcon.classList.add('hidden');
+            } else {
+                menu.classList.add('open'); menuIcon.classList.add('hidden'); closeIcon.classList.remove('hidden');
+            }
+        };
+
+        game.init();
+    </script>
+</body>
+</html>
