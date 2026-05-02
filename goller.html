@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Türkiye'nin Gölleri - KPSS Bulmaca</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap');
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            /* Su ve Göl Temasına uygun arka plan gradyanı */
+            background: linear-gradient(-45deg, #0f172a, #0c4a6e, #1e3a8a, #082f49);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            scroll-behavior: smooth;
+        }
+        
+        h1, h2, .font-title {
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #progress-bar { transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+        .letter-box {
+            font-family: 'JetBrains Mono', monospace;
+            box-shadow: 0 2px 0 #cbd5e1;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .puzzle-container.is-focused .letter-box {
+            border-color: #0284c7; /* Sky 600 */
+            box-shadow: 0 3px 0 #0284c7;
+            transform: translateY(-2px);
+        }
+
+        .puzzle-container.correct .letter-box {
+            border-color: #10b981 !important;
+            background-color: #ecfdf5 !important;
+            color: #047857 !important;
+            box-shadow: 0 3px 0 #059669 !important;
+        }
+        
+        .puzzle-container.hinted .letter-box {
+            border-color: #f59e0b !important;
+            background-color: #fffbeb !important;
+            color: #b45309 !important;
+            box-shadow: 0 3px 0 #d97706 !important;
+        }
+
+        .puzzle-container.incorrect .letter-box {
+            border-color: #ef4444 !important;
+            background-color: #fef2f2 !important;
+            color: #b91c1c !important;
+            box-shadow: 0 3px 0 #dc2626 !important;
+        }
+
+        .pop-letter {
+            animation: popLetter 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popLetter {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); color: #0284c7; }
+            100% { transform: scale(1); }
+        }
+
+        .puzzle-container.incorrect {
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .puzzle-container.correct {
+            animation: bounceIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.9) translateY(0); opacity: 0.5; }
+            50% { transform: scale(1.05) translateY(-4px); opacity: 1; }
+            100% { transform: scale(1) translateY(0); }
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); }
+            20%, 80% { transform: translate3d(3px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-5px, 0, 0); }
+            40%, 60% { transform: translate3d(5px, 0, 0); }
+        }
+
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0) scale(0.8); }
+            50% { transform: translateY(-20px) scale(1.2); }
+            100% { opacity: 0; transform: translateY(-40px) scale(1); }
+        }
+        .animate-float-up {
+            animation: floatUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+
+        .question-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .question-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            border-color: rgba(2, 132, 199, 0.4);
+            background: rgba(255, 255, 255, 1);
+        }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); border-radius: 5px; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-thumb:hover { background-color: #cbd5e1; }
+
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(8px);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            transform: scale(0.8) translateY(20px);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-stone-800 pb-24">
+
+    <!-- Top Progress Bar -->
+    <div class="fixed top-0 left-0 w-full h-2 bg-slate-900/50 backdrop-blur z-[60]">
+        <div id="progress-bar" class="h-full bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500 w-0 rounded-r-full shadow-[0_0_15px_rgba(6,182,212,0.8)]"></div>
+    </div>
+
+    <!-- HUD / Controls Header -->
+    <div class="sticky top-2 z-50 px-4 sm:px-6 mt-4">
+        <div class="max-w-6xl mx-auto bg-white/90 backdrop-blur-xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-white rounded-3xl p-3 sm:p-4 flex flex-col lg:flex-row justify-between items-center gap-4 transition-all hover:bg-white/95">
+            <div class="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-700 flex items-center justify-center text-white text-xl shadow-lg shadow-cyan-200 rotate-3 font-title border border-cyan-400">
+                        🌊
+                    </div>
+                    <div>
+                        <h1 class="text-lg sm:text-xl font-extrabold text-slate-800 font-title tracking-wide">
+                            Türkiye'nin Gölleri
+                        </h1>
+                        <p class="text-[11px] text-cyan-600 font-bold tracking-widest uppercase">Rastgele 20 Soru Seçildi</p>
+                    </div>
+                </div>
+                
+                <!-- Timer HUD -->
+                <div class="flex items-center gap-2 bg-slate-800 text-white px-4 py-2 rounded-2xl shadow-inner font-mono text-sm sm:text-base font-bold border-2 border-slate-700">
+                    ⏳ <span id="timer-display" class="tracking-wider text-cyan-400">00:00</span>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2 sm:gap-3 w-full lg:w-auto overflow-x-auto pb-1 lg:pb-0 hide-scrollbar">
+                <div id="score-wrapper" class="bg-gradient-to-r from-amber-100 to-orange-100 px-4 py-2 rounded-2xl font-black text-sm sm:text-base text-amber-800 min-w-max border-2 border-amber-200 flex items-center gap-2 shadow-sm">
+                    🏆 <span id="score-display" class="text-orange-600 text-lg">0</span> / <span id="total-display">0</span>
+                </div>
+                <button id="btn-check" onclick="checkAnswers()" class="bg-gradient-to-b from-cyan-500 to-cyan-700 hover:from-cyan-600 hover:to-cyan-800 text-white px-4 sm:px-6 py-2 rounded-2xl font-bold transition-all shadow-[0_4px_0_rgb(8,145,178)] active:shadow-[0_0px_0_rgb(8,145,178)] active:translate-y-1 min-w-max flex items-center gap-2">
+                    ✨ Kontrol Et
+                </button>
+                <button id="btn-show" onclick="showAnswers()" class="bg-gradient-to-b from-indigo-500 to-indigo-700 hover:from-indigo-600 hover:to-indigo-800 text-white px-4 py-2 rounded-2xl font-bold transition-all shadow-[0_4px_0_rgb(55,48,163)] active:shadow-[0_0px_0_rgb(55,48,163)] active:translate-y-1 min-w-max">
+                    👁️ Çözüm
+                </button>
+                <button id="btn-reset" onclick="resetQuiz(true)" class="bg-gradient-to-b from-slate-300 to-slate-400 hover:from-slate-400 hover:to-slate-500 text-slate-800 px-4 py-2 rounded-2xl font-bold transition-all shadow-[0_4px_0_rgb(100,116,139)] active:shadow-[0_0px_0_rgb(100,116,139)] active:translate-y-1 min-w-max text-sm">
+                    ↻ Yeni Sorular Getir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-6xl mx-auto px-4 py-8 sm:px-6">
+        
+        <!-- Info Alert -->
+        <div class="bg-white/95 backdrop-blur rounded-3xl p-5 mb-8 border-2 border-cyan-100 shadow-[0_8px_30px_rgb(0,0,0,0.1)] flex gap-4 items-center transform hover:scale-[1.01] transition-transform">
+            <div class="text-4xl animate-bounce drop-shadow-sm">🏞️</div>
+            <div>
+                <h3 class="font-bold text-cyan-900 text-lg mb-1 font-title">Nasıl Oynanır?</h3>
+                <p class="text-sm text-slate-700 font-medium leading-relaxed">
+                    Aşağıdaki cümlelerde boş bırakılan kutucuklara doğru göl isimlerini veya coğrafi kavramları yazın. Havuzdaki 50 göller sorusundan <strong>rastgele 20 soru</strong> seçildi.
+                    <br>💡 <em>İki kelimeli cevaplarda aradaki tire veya boşlukları dikkate almadan harfleri kutulara doldurun. Yeni sorular için 'Yeni Sorular Getir' butonuna basın!</em>
+                </p>
+            </div>
+        </div>
+
+        <!-- Tabs Container (Single Tab Structure) -->
+        <div id="tabs-container" class="flex gap-2 mb-6 overflow-x-auto hide-scrollbar pb-2 px-1">
+            <!-- Tabs injected via JS -->
+        </div>
+
+        <!-- Sections Container -->
+        <div id="quiz-container" class="pb-10">
+            <!-- Questions injected via JS -->
+        </div>
+
+    </div>
+
+    <!-- Custom Modal for Results -->
+    <div id="result-modal" class="modal-overlay fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div class="modal-content bg-white rounded-[2rem] shadow-2xl max-w-sm w-full p-8 text-center border-4 border-cyan-100 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-32 bg-gradient-to-br from-cyan-400 to-blue-600 -z-10 rounded-t-[1.7rem]"></div>
+            
+            <div id="modal-icon" class="text-6xl mb-2 mt-4 drop-shadow-xl bg-white w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 border-cyan-200">🎉</div>
+            <h3 id="modal-title" class="text-3xl font-black text-slate-800 mb-2 font-title mt-4">Mükemmel!</h3>
+            <p id="modal-message" class="text-slate-500 font-medium mb-6">Tüm soruları doğru cevapladınız.</p>
+            
+            <div class="bg-slate-50 rounded-2xl p-5 mb-6 flex justify-around items-center border-2 border-slate-100">
+                <div>
+                    <div class="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">SKOR</div>
+                    <div id="modal-score" class="text-2xl font-black text-cyan-600 drop-shadow-sm">20/20</div>
+                </div>
+                <div class="w-1 h-12 bg-slate-200 rounded-full"></div>
+                <div>
+                    <div class="text-xs text-slate-400 font-black uppercase tracking-widest mb-1">SÜRE</div>
+                    <div id="modal-time" class="text-2xl font-black text-slate-700 drop-shadow-sm">01:45</div>
+                </div>
+            </div>
+
+            <button onclick="closeModal()" class="w-full bg-gradient-to-b from-cyan-500 to-cyan-700 hover:from-cyan-600 hover:to-cyan-800 text-white font-black text-lg py-4 px-4 rounded-2xl transition-all shadow-[0_6px_0_rgb(8,145,178)] active:shadow-[0_0px_0_rgb(8,145,178)] active:translate-y-2">
+                Devam Et 🚀
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Göller Konusu Tür Odaklı Soru Havuzu (50 Soru)
+        const soruHavuzu = {
+            goller: [
+                "Türkiye'nin en sığ gölü olan ve kapalı havzada yer alan Tuz Gölü, oluşumuna göre bir [Tektonik] göldür.",
+                "Marmara Bölgesi'ndeki İznik ve Sapanca gölleri, fay hatları üzerinde yer alan [Tektonik] göllerdir.",
+                "Kuş Cenneti Milli Parkı'nı barındıran Manyas ile Ulubat gölleri, Güney Marmara'daki [Tektonik] göllere örnektir.",
+                "Elazığ'da yer alan ve sularından elektrik üretilen Hazar Gölü, oluşum bakımından [Tektonik] bir göldür.",
+                "Ardahan ile Gürcistan sınırında yer alan Aktaş Gölü oluşumuna göre [Tektonik] göl sınıfına girer.",
+                "Kırşehir'de flamingo cenneti olan Seyfe Gölü kapalı havzası, oluşum türüne göre [Tektonik] bir göldür.",
+                "Kayseri'deki Palas (Tuzla) Gölü ve Konya'daki Ilgın (Çavuşçu) Gölü yer hareketleriyle oluşan [Tektonik] göllerdir.",
+                "Göller yöresindeki Burdur, Akşehir ve Eber gölleri fay hatları üzerinde oluşmuş [Tektonik] göllerdir.",
+                "Türkiye'nin Maldivleri Salda Gölü ile Konya'daki Suğla Gölü, kalker arazide oluştukları için [Karstik] göllerdir.",
+                "Antalya yöresindeki Kestel, Avlan ve Elmalı gölleri oluşum türüne göre [Karstik] göllerdir.",
+                "İç Anadolu'daki Obruk, Kızören, Timraş ve Akgöl oluşum sınıflandırmasında [Karstik] göller içinde yer alır.",
+                "Sivas'taki Hafik Gölü, kalker yerine jips (alçıtaşı) üzerinde erime ile oluşmuş istisnai bir [Karstik] göldür.",
+                "Bitlis'te Nemrut Dağı'nın zirvesinde patlamayla oluşan krater gölü, ana grubuna göre [Volkanik] bir göldür.",
+                "Konya'da 'Dünyanın Nazar Boncuğu' olarak bilinen Meke Maarı ve Nevşehir'deki Acıgöl [Volkanik] göllerdir.",
+                "Isparta'da yer alan Gölcük Gölü, patlamalar sonucu oluşan çukurlara suların dolmasıyla meydana gelen [Volkanik] bir göldür.",
+                "Uludağ'ın zirvelerine yakın konumdaki Aynalı, Kilimli ve Karagöl oluşumlarına göre sirk, yani [Buzul] gölleridir.",
+                "Hakkari Cilo ve Rize Kaçkar dağlarındaki yüksek göller oluşum türüne göre sirk, yani [Buzul] gölleridir.",
+                "Van Gölü'nün doğusundaki Erçek ve Nazik gölleri, lavların vadiyi tıkamasıyla oluşan [Volkanik] Set gölleridir.",
+                "Doğu Anadolu'daki Çıldır ve Haçlı gölleri sularından faydalanılan [Volkanik] Set gölleridir.",
+                "Ağrı Dağı yöresinde yer alan Doğu Anadolu'daki Balık Gölü bir [Volkanik] Set gölüdür.",
+                "Erzurum'daki Tortum Gölü ve Trabzon'daki Sera Gölü, vadi önünün toprak kaymasıyla kapandığı [Heyelan] Seti gölleridir.",
+                "Tokat'taki Zinav ve Amasya'daki Borabay gölleri oluşum türüne göre [Heyelan] Seti göllerine örnektir.",
+                "Bolu'daki Abant, Yedigöller ve Sülük gölleri, toprak kaymaları sonucu oluşan [Heyelan] Seti gölleridir.",
+                "Ankara'daki Eymir ve Mogan gölleri, akarsuların getirdiği malzemenin vadiyi tıkadığı [Alüvyal] Set gölleridir.",
+                "Aydın'daki Bafa (Çamiçi) Gölü ve Muğla'daki Köyceğiz Gölü oluşum tiplerine göre [Alüvyal] Set gölleridir.",
+                "Manisa'daki Marmara Gölü, Gediz nehrinin biriktirmesi sonucu oluşan [Alüvyal] Set gölüdür.",
+                "İstanbul'daki Büyükçekmece ve Küçükçekmece gölleri dalga birikimiyle oluşan [Kıyı] Seti gölleridir.",
+                "İstanbul'daki Terkos (Durusu) Gölü oluşum türüne göre bir deniz kulağı, yani [Kıyı] Seti gölüdür.",
+                "Çukurova deltasındaki Akyatan ve Ağyatan gölleri oluşum sınıflandırmasına göre [Kıyı] Seti gölleridir.",
+                "Samsun Bafra deltasındaki Balık Gölü (Doğu'dakiyle karıştırmayın) oluşumuna göre lagün, yani [Kıyı] Seti gölüdür.",
+                "Dünyada tek örneği olan Erzincan'daki Otlukbeli Gölü, kimyasal tortul birikimiyle oluşan [Traverten] Seti gölüdür.",
+                "Hem tektonik çöküntü hem de lav setlerinin vadiyi kapatmasıyla oluşan Van Gölü, tür olarak [Karma] yapılı göllere girer.",
+                "Eğirdir, Beyşehir ve Kovada gölleri, oluşumlarında hem tektonizma hem de karstik erimeler etkili olduğu için [Karma] yapılıdır.",
+                "Türkiye'de kırık hatların fazla olması nedeniyle sayıca en fazla olan göl türü [Tektonik] göllerdir.",
+                "Ülkemizde oluşum bakımından volkanik set göllerinin tamamı yalnızca [Doğu] Anadolu Bölgesindedir.",
+                "Türkiye'de karstik göllerin en yaygın ve en fazla bulunduğu coğrafi bölge [Akdeniz] Bölgesidir.",
+                "Toprak kayması sonucu oluşan heyelan set göllerinin en yoğun bulunduğu bölgemiz [Karadeniz] Bölgesidir.",
+                "İstanbul ve Çukurova gibi deniz kıyısındaki alanlarda en çok görülen göl türü [Kıyı] Seti gölleridir.",
+                "Türkiye'de buzullaşma etkisi yükseklerde başladığı için sirk gölleri sadece [Yüksek] dağların zirvelerinde görülür.",
+                "Güneydoğu Anadolu, şiddetli buharlaşma ve yer şekillerinin düzlüğünden dolayı [Doğal] göle sahip olmayan tek bölgemizdir.",
+                "Bir gölün sularını çanaktan dışarıya boşaltan, gölden çıkış yapan akarsuya [Gideğen] veya Göl Ayağı denir.",
+                "Sularını bir gideğen aracılığıyla denize veya dışarı boşaltan göllerin suları [Tatlı] özellik gösterir.",
+                "Dışarıya akıntısı olmayan, volkanik araziden beslenen Van Gölü'nün suları [Sodalı] özelliktedir.",
+                "Maksimum derinliği oldukça sığ olan ve yüksek buharlaşma nedeniyle yıl içinde alanı en çok değişen göl [Tuz] Gölü'dür.",
+                "Üzerinde feribotlarla tren vagonu taşımacılığı yapılabilen tek gölümüz [Van] Gölü'dür.",
+                "Dünyada sadece Van Gölü'nün sodalı sularında yaşayabilen endemik balık türü [İnci] Kefali'dir.",
+                "Göl tabanındaki düdenler tıkanınca göle, tıkaçlar açılınca tekrar tarım ovasına dönüşen Avlan, Kestel gibi alanlara [Gölova] sistemi denir.",
+                "Suları tatlı olan Beyşehir ve Eğirdir göllerinden avlanarak eskiden ihraç edilen tatlı su ıstakozu [Kerevit] 'tir.",
+                "Elektrik enerjisi elde etmek için direkt gölün içi değil, Hazar, Tortum ve Çıldır göllerinin [Gideğenleri] (çıkan suları) kullanılır.",
+                "Trabzon'daki Uzungöl, oluşumunda daha çok toprak kayması etkili olduğu için genellikle [Heyelan] Seti gölü kabul edilir."
+            ]
+        };
+
+        const CATEGORIES = [
+            { id: 'goller', title: 'Türkiye\'nin Gölleri', icon: '🏞️' }
+        ];
+
+        let activeSession = {
+            goller: []
+        };
+
+        let currentTabId = 'goller';
+        let timerInterval;
+        let secondsElapsed = 0;
+        let isTimerRunning = false;
+
+        function levenshtein(a, b) {
+            if (a.length === 0) return b.length;
+            if (b.length === 0) return a.length;
+            let matrix = [];
+            for (let i = 0; i <= b.length; i++) { matrix[i] = [i]; }
+            for (let j = 0; j <= a.length; j++) { matrix[0][j] = j; }
+            for (let i = 1; i <= b.length; i++) {
+                for (let j = 1; j <= a.length; j++) {
+                    if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                        matrix[i][j] = matrix[i - 1][j - 1];
+                    } else {
+                        matrix[i][j] = Math.min(
+                            matrix[i - 1][j - 1] + 1, 
+                            Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                        );
+                    }
+                }
+            }
+            return matrix[b.length][a.length];
+        }
+
+        function normalizeString(str) {
+            let s = str.toLocaleLowerCase('tr-TR').replace(/[-'\s]/g, '');
+            return s.replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+                    .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c')
+                    .replace(/î/g, 'i').replace(/â/g, 'a');
+        }
+
+        function formatTime(totalSeconds) {
+            const m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const s = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function getRandomItems(arr, count) {
+            let shuffled = [...arr].sort(() => 0.5 - Math.random());
+            return shuffled.slice(0, count);
+        }
+
+        window.updateVisualBoxes = function(input) {
+            const container = input.nextElementSibling; 
+            const boxes = container.children;
+            const val = input.value;
+            
+            for(let i=0; i < boxes.length; i++) {
+                if(boxes[i].classList.contains('letter-box')) {
+                    boxes[i].innerText = val[i] || '';
+                    if (val[i] && val[i] !== ' ' && val[i] !== '-') {
+                        boxes[i].classList.add('pop-letter');
+                        setTimeout(() => boxes[i].classList.remove('pop-letter'), 200);
+                    }
+                }
+            }
+        };
+
+        function spawnFloatingScore(element) {
+            const floater = document.createElement('div');
+            floater.innerText = "⭐ Harika!";
+            floater.className = "absolute text-cyan-500 font-black text-sm pointer-events-none animate-float-up z-50 drop-shadow-md whitespace-nowrap font-title";
+            
+            const rect = element.getBoundingClientRect();
+            floater.style.left = `${rect.left + window.scrollX + rect.width / 2 - 30}px`;
+            floater.style.top = `${rect.top + window.scrollY - 10}px`;
+            
+            document.body.appendChild(floater);
+            setTimeout(() => floater.remove(), 1000);
+        }
+
+        function startTimer() {
+            if (!isTimerRunning) {
+                isTimerRunning = true;
+                timerInterval = setInterval(() => {
+                    secondsElapsed++;
+                    document.getElementById('timer-display').innerText = formatTime(secondsElapsed);
+                }, 1000);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+        }
+
+        function resetTimer() {
+            stopTimer();
+            secondsElapsed = 0;
+            document.getElementById('timer-display').innerText = "00:00";
+        }
+
+        function saveProgress() {
+            const inputs = document.querySelectorAll('.hidden-puzzle-input');
+            const saveData = {};
+            inputs.forEach((input, index) => {
+                if (input.value.trim() !== '') saveData[index] = input.value;
+            });
+            localStorage.setItem('gollerPuzzleDataKPSS', JSON.stringify(saveData));
+            updateProgressBar();
+        }
+
+        function loadProgress() {
+            const savedData = JSON.parse(localStorage.getItem('gollerPuzzleDataKPSS'));
+            if (savedData) {
+                const inputs = document.querySelectorAll('.hidden-puzzle-input');
+                inputs.forEach((input, index) => {
+                    if (savedData[index]) {
+                        input.value = savedData[index];
+                        updateVisualBoxes(input);
+                    }
+                });
+                updateProgressBar();
+                if(Object.keys(savedData).length > 0) startTimer();
+            }
+        }
+
+        function updateProgressBar() {
+            if (currentTabId === 'mistakes') return;
+            const inputs = document.querySelectorAll('#section-' + currentTabId + ' .hidden-puzzle-input');
+            if(inputs.length === 0) return;
+
+            let filled = 0;
+            inputs.forEach(inp => { if(inp.value.trim() !== '') filled++; });
+            const percentage = (filled / inputs.length) * 100;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+        }
+
+        window.useHint = function(btnElement, correctAnswer) {
+            startTimer();
+            const container = btnElement.previousElementSibling;
+            const inputElement = container.querySelector('.hidden-puzzle-input');
+            let currentVal = inputElement.value;
+            let currentLen = currentVal.length;
+            
+            if(currentLen >= correctAnswer.length || container.classList.contains('correct')) return;
+            
+            inputElement.value = correctAnswer.substring(0, currentLen + 1);
+            updateVisualBoxes(inputElement);
+            container.classList.add('hinted'); 
+            
+            btnElement.style.transform = 'scale(1.3)';
+            setTimeout(() => { btnElement.style.transform = 'scale(1)'; }, 200);
+            
+            saveProgress();
+            updateProgressBar();
+        }
+
+        function switchTab(id) {
+            currentTabId = id;
+            const isMistakes = (id === 'mistakes');
+
+            document.querySelectorAll('.section-container').forEach(el => {
+                const sectionIdStr = el.id.replace('section-', '');
+                if(sectionIdStr === id) {
+                    el.classList.remove('hidden');
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(10px)';
+                    setTimeout(() => {
+                        el.style.transition = 'all 0.4s ease';
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, 50);
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+            
+            document.querySelectorAll('[id^="tab-btn-"]').forEach(btn => {
+                const btnIdStr = btn.id.replace('tab-btn-', '');
+                if(btnIdStr === id) {
+                    if (id === 'mistakes') {
+                        btn.className = "px-6 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_4px_15px_rgba(245,158,11,0.4)] transition-all whitespace-nowrap transform scale-105 z-10 font-title border-2 border-white/20";
+                    } else {
+                        btn.className = "px-6 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-cyan-500 to-blue-700 shadow-[0_4px_15px_rgba(6,182,212,0.4)] transition-all whitespace-nowrap transform scale-105 z-10 font-title border-2 border-white/20";
+                    }
+                } else {
+                    btn.className = "px-6 py-3 rounded-2xl font-bold text-slate-600 bg-white/90 hover:bg-white hover:text-slate-900 transition-all whitespace-nowrap cursor-pointer border-2 border-transparent shadow-sm backdrop-blur";
+                }
+            });
+
+            document.getElementById('score-wrapper').style.display = isMistakes ? 'none' : '';
+            document.getElementById('btn-check').style.display = isMistakes ? 'none' : '';
+            document.getElementById('btn-show').style.display = isMistakes ? 'none' : '';
+            document.getElementById('btn-reset').style.display = isMistakes ? 'none' : '';
+
+            if (!isMistakes) {
+                const inputsInTab = document.querySelectorAll('#section-' + id + ' .hidden-puzzle-input');
+                document.getElementById('total-display').innerText = inputsInTab.length;
+                document.getElementById('score-display').innerText = "0"; 
+                updateProgressBar();
+            } else {
+                document.getElementById('progress-bar').style.width = `100%`;
+            }
+        }
+
+        function generateNewSession() {
+            // Soru havuzundan rastgele 20 soru seç.
+            activeSession.goller = getRandomItems(soruHavuzu.goller, 20);
+            localStorage.setItem('kpssGöllerSession', JSON.stringify(activeSession));
+        }
+
+        function initializeQuiz() {
+            const savedSession = localStorage.getItem('kpssGöllerSession');
+            if(savedSession) {
+                try {
+                    activeSession = JSON.parse(savedSession);
+                    // Eğer eski versiyon kaldıysa temizleyip yeniden oluştur
+                    if(!activeSession.goller) generateNewSession();
+                } catch(e) {
+                    generateNewSession();
+                }
+            } else {
+                generateNewSession();
+            }
+            renderDOM();
+        }
+
+        function renderDOM() {
+            const tabsContainer = document.getElementById('tabs-container');
+            const container = document.getElementById('quiz-container');
+            tabsContainer.innerHTML = '';
+            container.innerHTML = '';
+
+            CATEGORIES.forEach((cat) => {
+                const tabBtn = document.createElement('button');
+                tabBtn.id = `tab-btn-${cat.id}`;
+                tabBtn.innerHTML = `${cat.icon} ${cat.title}`;
+                tabBtn.onclick = () => switchTab(cat.id);
+                tabsContainer.appendChild(tabBtn);
+
+                const sectionDiv = document.createElement('div');
+                sectionDiv.id = `section-${cat.id}`;
+                sectionDiv.className = `section-container bg-white/95 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.15)] border border-white/80 hidden`;
+                
+                const sectionTitle = document.createElement('h2');
+                sectionTitle.className = 'text-3xl font-black text-slate-800 mb-8 pb-4 border-b-2 border-slate-200/50 flex items-center gap-3 font-title';
+                sectionTitle.innerHTML = `<span class="bg-cyan-100 p-2 rounded-xl shadow-sm">${cat.icon}</span> Bölüm: ${cat.title}`;
+                sectionDiv.appendChild(sectionTitle);
+
+                const questionsList = document.createElement('div');
+                questionsList.className = 'space-y-6';
+
+                const questionsArray = activeSession[cat.id];
+
+                questionsArray.forEach((qStr, qIndex) => {
+                    const questionItem = document.createElement('div');
+                    questionItem.className = 'flex items-start gap-4 p-5 rounded-2xl question-card question-item relative';
+                    questionItem.setAttribute('data-original', qStr); 
+                    
+                    const numBadge = document.createElement('span');
+                    numBadge.className = 'flex-shrink-0 bg-gradient-to-br from-cyan-500 to-blue-700 text-white font-black rounded-xl w-10 h-10 flex items-center justify-center text-sm shadow-[0_4px_10px_rgba(6,182,212,0.3)] mt-1 font-title';
+                    numBadge.innerText = (qIndex + 1);
+                    
+                    const qTextContainer = document.createElement('div');
+                    qTextContainer.className = 'text-lg leading-loose w-full text-slate-800 font-medium';
+
+                    let formattedHTML = qStr.replace(/\[(.*?)\]/g, (match, answer) => {
+                        const boxesHTML = Array.from({length: answer.length}).map(() => 
+                            `<span class="letter-box flex items-center justify-center w-6 h-8 sm:w-8 sm:h-10 border-2 border-slate-300 rounded-md bg-white text-cyan-700 font-bold text-lg sm:text-xl uppercase"></span>`
+                        ).join('');
+
+                        return `<span class="inline-flex items-center gap-1 sm:gap-2 mx-1 align-middle whitespace-nowrap">
+                                    <span class="relative inline-flex puzzle-container" data-answer="${answer}">
+                                        <input type="text" data-answer="${answer}" class="hidden-puzzle-input absolute inset-0 w-full h-full opacity-0 z-20 cursor-text" 
+                                               maxlength="${answer.length}"
+                                               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" 
+                                               oninput="updateVisualBoxes(this); startTimer(); saveProgress();"
+                                               onfocus="this.classList.add('is-focused'); this.parentElement.classList.add('is-focused')"
+                                               onblur="this.classList.remove('is-focused'); this.parentElement.classList.remove('is-focused')">
+                                        <span class="flex gap-1 visual-box-container pointer-events-none">
+                                            ${boxesHTML}
+                                        </span>
+                                    </span>
+                                    <button onclick="useHint(this, '${answer}')" class="text-slate-300 hover:text-amber-500 transition-all flex items-center justify-center hover:scale-110 active:scale-95" title="İpucu Al">
+                                        💡
+                                    </button>
+                                </span>`;
+                    });
+
+                    qTextContainer.innerHTML = formattedHTML;
+                    questionItem.appendChild(numBadge);
+                    questionItem.appendChild(qTextContainer);
+                    questionsList.appendChild(questionItem);
+                });
+
+                sectionDiv.appendChild(questionsList);
+                container.appendChild(sectionDiv);
+            });
+
+            loadProgress(); 
+            // Tek tab olduğu için direkt onu aktif yap
+            switchTab('goller');
+        }
+
+        function showModal(title, message, scoreStr, isPerfect = false) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-score').innerText = scoreStr;
+            document.getElementById('modal-time').innerText = formatTime(secondsElapsed);
+            
+            const icon = document.getElementById('modal-icon');
+            if(isPerfect) {
+                icon.innerText = "🏆";
+                icon.className = "text-6xl mb-2 mt-4 drop-shadow-xl bg-gradient-to-br from-yellow-100 to-amber-100 w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 border-amber-300 animate-bounce";
+                confetti({ particleCount: 200, spread: 90, origin: { y: 0.5 }, colors: ['#06b6d4', '#3b82f6', '#fbbf24', '#0ea5e9'] });
+            } else {
+                icon.innerText = "📈";
+                icon.className = "text-6xl mb-2 mt-4 drop-shadow-xl bg-white w-24 h-24 mx-auto rounded-full flex items-center justify-center border-4 border-slate-200";
+            }
+
+            document.getElementById('result-modal').classList.add('active');
+            stopTimer(); 
+        }
+
+        function closeModal() {
+            document.getElementById('result-modal').classList.remove('active');
+        }
+
+        function checkAnswers() {
+            if (currentTabId === 'mistakes') return; 
+
+            let score = 0;
+            let wrongQuestions = new Set(); 
+            const inputs = document.querySelectorAll('#section-' + currentTabId + ' .hidden-puzzle-input');
+            const totalInputs = inputs.length;
+
+            inputs.forEach(input => {
+                const container = input.closest('.puzzle-container');
+                const wasCorrectBefore = container.classList.contains('correct');
+                container.classList.remove('correct', 'incorrect', 'revealed', 'hinted');
+                
+                const userAnswerRaw = input.value.trim();
+                const correctAnswerRaw = input.getAttribute('data-answer');
+                const qItem = input.closest('.question-item');
+                const originalQuestionStr = qItem.getAttribute('data-original');
+
+                if (userAnswerRaw === '') {
+                    wrongQuestions.add(originalQuestionStr);
+                    return;
+                }
+
+                const userAnswer = normalizeString(userAnswerRaw);
+                const correctAnswer = normalizeString(correctAnswerRaw);
+                const dist = levenshtein(userAnswer, correctAnswer);
+                const allowedMistakes = correctAnswer.length <= 3 ? 0 : (correctAnswer.length <= 7 ? 1 : 2);
+
+                if (dist <= allowedMistakes) {
+                    container.classList.add('correct');
+                    if(dist > 0) {
+                        input.value = correctAnswerRaw; 
+                        updateVisualBoxes(input);
+                    }
+                    score++;
+                    if(!wasCorrectBefore) {
+                        spawnFloatingScore(container);
+                    }
+                } else {
+                    container.classList.add('incorrect');
+                    wrongQuestions.add(originalQuestionStr); 
+                }
+            });
+
+            document.getElementById('score-display').innerText = score;
+            const scoreString = `${score}/${totalInputs}`;
+
+            if (wrongQuestions.size > 0) {
+                showModal("Neredeyse!", `Bu bölümde ${wrongQuestions.size} hata veya boş var. Kurtarma modunda düzeltebilirsin!`, scoreString, false);
+                buildMistakesTab(Array.from(wrongQuestions));
+                document.querySelector('#result-modal button').onclick = () => {
+                    closeModal();
+                    switchTab('mistakes');
+                    document.querySelector('#result-modal button').onclick = closeModal;
+                };
+            } else {
+                removeMistakesTab();
+                showModal("Mükemmel!", "Harika iş çıkardın. Bu bölümü efsanevi bir şekilde tamamladın!", scoreString, true);
+            }
+        }
+
+        function buildMistakesTab(questionsArray) {
+            let tabsContainer = document.getElementById('tabs-container');
+            let quizContainer = document.getElementById('quiz-container');
+
+            let tabBtn = document.getElementById('tab-btn-mistakes');
+            if (!tabBtn) {
+                tabBtn = document.createElement('button');
+                tabBtn.id = 'tab-btn-mistakes';
+                tabBtn.onclick = () => switchTab('mistakes');
+                tabsContainer.appendChild(tabBtn);
+            }
+            tabBtn.innerHTML = `🔥 Kurtarma Modu <span class="bg-white/30 text-white font-black text-xs px-2 py-1 rounded-full ml-1">${questionsArray.length}</span>`;
+
+            let sectionDiv = document.getElementById('section-mistakes');
+            if (!sectionDiv) {
+                sectionDiv = document.createElement('div');
+                sectionDiv.id = 'section-mistakes';
+                sectionDiv.className = 'section-container bg-gradient-to-br from-amber-50 to-orange-100/90 backdrop-blur-2xl p-6 sm:p-8 rounded-[2rem] shadow-[0_15px_40px_rgba(0,0,0,0.15)] border-4 border-amber-200 hidden';
+                
+                const title = document.createElement('h2');
+                title.className = 'text-3xl font-black text-amber-900 mb-4 pb-4 border-b-2 border-amber-200/50 flex items-center gap-3 font-title';
+                title.innerHTML = `🛠️ Hataları Düzelt`;
+                
+                const subtitle = document.createElement('p');
+                subtitle.className = 'text-sm text-amber-800 mb-8 bg-amber-100/80 backdrop-blur p-4 rounded-2xl border border-amber-200 font-medium leading-relaxed';
+                subtitle.innerHTML = 'Hatalı veya boş sorular burada listelendi. Doğru cevaba ulaşana kadar yazmaya devam et. <b>Yazarken anında kontrol edilecek!</b>';
+
+                sectionDiv.appendChild(title);
+                sectionDiv.appendChild(subtitle);
+                
+                const questionsList = document.createElement('div');
+                questionsList.id = 'mistakes-list';
+                questionsList.className = 'space-y-5';
+                sectionDiv.appendChild(questionsList);
+
+                quizContainer.appendChild(sectionDiv);
+            }
+
+            const questionsList = document.getElementById('mistakes-list');
+            questionsList.innerHTML = ''; 
+            sectionDiv.classList.remove('completed-celebration'); 
+
+            questionsArray.forEach((qStr, index) => {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'flex items-start gap-4 p-5 rounded-2xl bg-white/80 hover:bg-white transition-colors border border-amber-200 shadow-sm question-item relative';
+                
+                const numBadge = document.createElement('span');
+                numBadge.className = 'flex-shrink-0 bg-gradient-to-br from-amber-400 to-orange-500 text-white font-black rounded-xl w-10 h-10 flex items-center justify-center text-sm shadow-[0_4px_10px_rgba(245,158,11,0.3)] mt-1 font-title';
+                numBadge.innerText = index + 1;
+                
+                const qTextContainer = document.createElement('div');
+                qTextContainer.className = 'text-lg leading-loose w-full text-slate-800 font-medium';
+
+                let formattedHTML = qStr.replace(/\[(.*?)\]/g, (match, answer) => {
+                    const boxesHTML = Array.from({length: answer.length}).map(() => 
+                        `<span class="letter-box flex items-center justify-center w-6 h-8 sm:w-8 sm:h-10 border-2 border-amber-300 rounded-md bg-white text-slate-800 font-bold text-lg sm:text-xl uppercase"></span>`
+                    ).join('');
+
+                    return `<span class="inline-flex items-center gap-1 sm:gap-2 mx-1 align-middle whitespace-nowrap">
+                                <span class="relative inline-flex puzzle-container" data-answer="${answer}">
+                                    <input type="text" data-answer="${answer}" class="hidden-puzzle-input practice-input absolute inset-0 w-full h-full opacity-0 z-20 cursor-text" 
+                                           maxlength="${answer.length}"
+                                           oninput="updateVisualBoxes(this);"
+                                           onkeyup="handlePracticeInput(this, 'keyup')" 
+                                           onblur="this.parentElement.classList.remove('is-focused'); handlePracticeInput(this, 'blur')"
+                                           onfocus="this.parentElement.classList.add('is-focused')"
+                                           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                                    <span class="flex gap-1 visual-box-container pointer-events-none">
+                                        ${boxesHTML}
+                                    </span>
+                                </span>
+                            </span>`;
+                });
+
+                qTextContainer.innerHTML = formattedHTML;
+                questionItem.appendChild(numBadge);
+                questionItem.appendChild(qTextContainer);
+                questionsList.appendChild(questionItem);
+            });
+        }
+
+        function handlePracticeInput(input, eventType) {
+            const container = input.closest('.puzzle-container');
+            const wasCorrectBefore = container.classList.contains('correct');
+            container.classList.remove('incorrect', 'revealed', 'hinted');
+            
+            const userAnswerRaw = input.value.trim();
+            const correctAnswerRaw = input.getAttribute('data-answer');
+
+            if (userAnswerRaw === '') {
+                container.classList.remove('correct');
+                return;
+            }
+
+            const dist = levenshtein(normalizeString(userAnswerRaw), normalizeString(correctAnswerRaw));
+            const allowedMistakes = correctAnswerRaw.length <= 3 ? 0 : (correctAnswerRaw.length <= 7 ? 1 : 2);
+
+            if (dist <= allowedMistakes) {
+                container.classList.add('correct');
+                input.value = correctAnswerRaw;
+                updateVisualBoxes(input);
+                input.disabled = true; 
+                
+                if(!wasCorrectBefore) spawnFloatingScore(container);
+                checkAllPracticeDone(); 
+            } else {
+                container.classList.remove('correct');
+                if (eventType === 'blur') container.classList.add('incorrect');
+            }
+        }
+
+        function checkAllPracticeDone() {
+            const practiceSection = document.getElementById('section-mistakes');
+            if(!practiceSection) return;
+            
+            const allInputs = practiceSection.querySelectorAll('.practice-input');
+            const allCorrect = Array.from(allInputs).every(inp => {
+                return inp.closest('.puzzle-container').classList.contains('correct');
+            });
+            
+            if(allInputs.length > 0 && allCorrect) {
+                if(!practiceSection.classList.contains('completed-celebration')) {
+                    practiceSection.classList.add('completed-celebration');
+                    confetti({ particleCount: 150, spread: 70, origin: { y: 0.7 }, colors: ['#f59e0b', '#06b6d4', '#10b981'] });
+                    setTimeout(() => alert("Küllerinden doğdun! Öğrenme modunu başarıyla bitirdin! 🔥🎉"), 600);
+                }
+            }
+        }
+
+        function removeMistakesTab() {
+            const mistakesBtn = document.getElementById('tab-btn-mistakes');
+            const mistakesSec = document.getElementById('section-mistakes');
+            if (mistakesBtn) mistakesBtn.remove();
+            if (mistakesSec) mistakesSec.remove();
+        }
+
+        function showAnswers() {
+            if(currentTabId === 'mistakes') return;
+            
+            if(confirm("Tüm cevapları pes edip görmek istediğine emin misin? (Puan kazanılmaz)")) {
+                const inputs = document.querySelectorAll('#section-' + currentTabId + ' .hidden-puzzle-input');
+                inputs.forEach(input => {
+                    const container = input.closest('.puzzle-container');
+                    input.value = input.getAttribute('data-answer');
+                    updateVisualBoxes(input);
+                    container.classList.remove('correct', 'incorrect', 'hinted');
+                    container.classList.add('revealed', 'correct');
+                    input.disabled = true;
+                });
+                updateProgressBar();
+                stopTimer();
+            }
+        }
+
+        function resetQuiz(askConfirm = false) {
+            if(askConfirm && !confirm("Oyun baştan başlıyor ve YENİ 20 soru seçilecek. Emin misin?")) return;
+
+            if(currentTabId === 'mistakes') {
+                 removeMistakesTab();
+                 switchTab('goller');
+            }
+
+            // Temizle ve yeni oturum oluştur
+            localStorage.removeItem('gollerPuzzleDataKPSS');
+            localStorage.removeItem('kpssGöllerSession');
+            generateNewSession();
+            renderDOM();
+            
+            document.getElementById('score-display').innerText = "0";
+            removeMistakesTab();
+            updateProgressBar();
+            resetTimer();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        window.onload = initializeQuiz;
+
+    </script>
+</body>
+</html>
