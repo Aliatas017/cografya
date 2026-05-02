@@ -498,12 +498,26 @@
                 isGroup: true,
                 subGames: [
                     { title: "Tektonik Göller", link: "tektonikgoller.html", icon: "activity" },
+					{ title: "Göller Aktivite", link: "goller.html", icon: "activity" },
                     { title: "Volkanik Göller", link: "volkanikgoller.html", icon: "flame" },
                     { title: "Karstik Göller", link: "karstikgoller.html", icon: "mountain" },
                     { title: "Heyelan Set", link: "heyelansetgoller.html", icon: "land-plot" },
                     { title: "Alüvyal Set", link: "aluvyalsetgoller.html", icon: "waves" },
                     { title: "Kıyı Set", link: "kiyisetgoller.html", icon: "anchor" },
                     { title: "Volkanik Set", link: "volkaniksetgoller.html", icon: "mountain-snow" }
+                ]
+            },
+             // GRUP: Barajlar (Çoklu seçenek - Grid'de yayılacak)
+			 { 
+                title: "Barajlar", 
+                cat: "su", 
+                icon: "droplets", 
+                desc: "Türkiyenin Barajları",
+                isGroup: true,
+                subGames: [
+                    { title: "Barajlar Haritası", link: "barajharita.html", icon: "activity" },
+					{ title: "Barajlar Aktivite", link: "barajlaractivity.html", icon: "activity" }
+                
                 ]
             },
             
@@ -513,8 +527,8 @@
             { title: "Buzullaşma", cat: "yersekilleri", icon: "snowflake", desc: "Buzullaşan alanlar.", link: "buzullasma.html" },
             { title: "Mağaralar", cat: "yersekilleri", icon: "flashlight", desc: "Türkiye'nin gizemli mağaraları.", link: "magaralar.html" },
             { title: "Şelaleler", cat: "su", icon: "zap", desc: "Türkiye'nin harika şelaleleri.", link: "selale.html" },
-            { title: "Akarsular", cat: "su", icon: "droplets", desc: "Türkiye'nin Akarsuları.", link: "akarsular.html" },
-			{ title: "Barajlar", cat: "su", icon: "droplets", desc: "Türkiye'nin Barajları.", link: "barajlar.html" }
+            { title: "Akarsular", cat: "su", icon: "droplets", desc: "Türkiye'nin Akarsuları.", link: "akarsular.html" }
+	
         ];
 
         let allGames = [...baseGames];
