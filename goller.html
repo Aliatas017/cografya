@@ -11,7 +11,6 @@
         
         body {
             font-family: 'Nunito', sans-serif;
-            /* Su ve Göl Temasına uygun arka plan gradyanı */
             background: linear-gradient(-45deg, #0f172a, #0c4a6e, #1e3a8a, #082f49);
             background-size: 400% 400%;
             animation: gradientBG 15s ease infinite;
@@ -37,7 +36,7 @@
         }
 
         .puzzle-container.is-focused .letter-box {
-            border-color: #0284c7; /* Sky 600 */
+            border-color: #0284c7;
             box-shadow: 0 3px 0 #0284c7;
             transform: translateY(-2px);
         }
@@ -198,7 +197,7 @@
             <div>
                 <h3 class="font-bold text-cyan-900 text-lg mb-1 font-title">Nasıl Oynanır?</h3>
                 <p class="text-sm text-slate-700 font-medium leading-relaxed">
-                    Aşağıdaki cümlelerde boş bırakılan kutucuklara doğru göl isimlerini veya coğrafi kavramları yazın. Havuzdaki 50 göller sorusundan <strong>rastgele 20 soru</strong> seçildi.
+                    Aşağıdaki cümlelerde boş bırakılan kutucuklara doğru göl isimlerini veya coğrafi kavramları yazın. Havuzdaki 50 göller sorusundan <strong>hiç çözmediğiniz rastgele 20 soru</strong> seçildi.
                     <br>💡 <em>İki kelimeli cevaplarda aradaki tire veya boşlukları dikkate almadan harfleri kutulara doldurun. Yeni sorular için 'Yeni Sorular Getir' butonuna basın!</em>
                 </p>
             </div>
@@ -245,7 +244,6 @@
 
     <!-- JavaScript Logic -->
     <script>
-        // Göller Konusu Tür Odaklı Soru Havuzu (50 Soru)
         const soruHavuzu = {
             goller: [
                 "Türkiye'nin en sığ gölü olan ve kapalı havzada yer alan Tuz Gölü, oluşumuna göre bir [Tektonik] göldür.",
@@ -349,7 +347,7 @@
 				"Ağyatan Gölü, delta ovasında yer alan bir [kıyı] set gölüdür.",
 				"Balık Gölü (Bafra), delta üzerinde oluşmuş bir [kıyı] set gölüdür.",
 				"Otlukbeli Gölü, traverten set oluşumu ile meydana gelmiş dünyadaki tek örnek olan bir [traverten] set gölüdür."
-            ]
+            ].map((text, index) => ({ id: 'g_' + index, text: text }))
         };
 
         const CATEGORIES = [
@@ -357,7 +355,10 @@
         ];
 
         let activeSession = {
-            goller: []
+            goller: [],
+            usedQuestions: {
+                goller: []
+            }
         };
 
         let currentTabId = 'goller';
@@ -399,9 +400,33 @@
             return `${m}:${s}`;
         }
 
-        function getRandomItems(arr, count) {
-            let shuffled = [...arr].sort(() => 0.5 - Math.random());
-            return shuffled.slice(0, count);
+        // Yeni rastgele soru seçme fonksiyonu - Kullanılmışları dışarıda tutar
+        function getUnusedRandomItems(categoryId, count) {
+            let pool = soruHavuzu[categoryId];
+            
+            if (!activeSession.usedQuestions[categoryId]) {
+                activeSession.usedQuestions[categoryId] = [];
+            }
+            let usedIds = activeSession.usedQuestions[categoryId];
+
+            let available = pool.filter(q => !usedIds.includes(q.id));
+
+            if (available.length < count) {
+                // Havuzda yeterli soru kalmadıysa sıfırla
+                let categoryName = CATEGORIES.find(c => c.id === categoryId).title;
+                alert(`Tebrikler! ${categoryName} için havuzdaki tüm soruları gördün. Soru havuzu başa sarılıyor!`);
+                activeSession.usedQuestions[categoryId] = [];
+                usedIds = activeSession.usedQuestions[categoryId];
+                available = [...pool];
+            }
+
+            let shuffled = available.sort(() => 0.5 - Math.random());
+            let selected = shuffled.slice(0, count);
+
+            // Seçilenleri kullanılmışlara ID olarak ekle
+            activeSession.usedQuestions[categoryId].push(...selected.map(q => q.id));
+
+            return selected;
         }
 
         window.updateVisualBoxes = function(input) {
@@ -559,8 +584,12 @@
         }
 
         function generateNewSession() {
-            // Soru havuzundan rastgele 20 soru seç.
-            activeSession.goller = getRandomItems(soruHavuzu.goller, 20);
+            if (!activeSession.usedQuestions) {
+                activeSession.usedQuestions = { goller: [] };
+            }
+
+            activeSession.goller = getUnusedRandomItems('goller', 20);
+
             localStorage.setItem('kpssGöllerSession', JSON.stringify(activeSession));
         }
 
@@ -569,14 +598,36 @@
             if(savedSession) {
                 try {
                     activeSession = JSON.parse(savedSession);
-                    // Eğer eski versiyon kaldıysa temizleyip yeniden oluştur
-                    if(!activeSession.goller) generateNewSession();
+                    
+                    let needsReset = false;
+                    
+                    if (!activeSession.usedQuestions) {
+                        activeSession.usedQuestions = { goller: [] };
+                    } else if (activeSession.usedQuestions.goller.length > 0 && typeof activeSession.usedQuestions.goller[0] === 'string' && !activeSession.usedQuestions.goller[0].startsWith('g_')) {
+                        needsReset = true; 
+                    }
+                    
+                    if (activeSession.goller && activeSession.goller.length > 0 && typeof activeSession.goller[0] === 'string') {
+                        needsReset = true;
+                    }
+
+                    if (needsReset) {
+                        activeSession = { goller: [], usedQuestions: { goller: [] } };
+                        generateNewSession();
+                    }
                 } catch(e) {
+                    activeSession = { goller: [], usedQuestions: { goller: [] } };
                     generateNewSession();
                 }
             } else {
+                activeSession = { goller: [], usedQuestions: { goller: [] } };
                 generateNewSession();
             }
+            
+            if(!activeSession.goller || activeSession.goller.length === 0) {
+                generateNewSession();
+            }
+
             renderDOM();
         }
 
@@ -607,10 +658,12 @@
 
                 const questionsArray = activeSession[cat.id];
 
-                questionsArray.forEach((qStr, qIndex) => {
+                questionsArray.forEach((qObj, qIndex) => {
+                    const qStr = qObj.text; 
                     const questionItem = document.createElement('div');
                     questionItem.className = 'flex items-start gap-4 p-5 rounded-2xl question-card question-item relative';
                     questionItem.setAttribute('data-original', qStr); 
+                    questionItem.setAttribute('data-id', qObj.id);
                     
                     const numBadge = document.createElement('span');
                     numBadge.className = 'flex-shrink-0 bg-gradient-to-br from-cyan-500 to-blue-700 text-white font-black rounded-xl w-10 h-10 flex items-center justify-center text-sm shadow-[0_4px_10px_rgba(6,182,212,0.3)] mt-1 font-title';
@@ -904,9 +957,10 @@
                  switchTab('goller');
             }
 
-            // Temizle ve yeni oturum oluştur
+            // Önceki çözümleri sil ama oturumu(geçmişi) silme
             localStorage.removeItem('gollerPuzzleDataKPSS');
-            localStorage.removeItem('kpssGöllerSession');
+            
+            // Yeni soruları oluştur ve arayüzü tekrar çiz
             generateNewSession();
             renderDOM();
             
