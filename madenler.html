@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Eğitici Maden Avı</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts: Inter & Space Grotesk -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Koyu Tema (Dark Mode) Ayarları */
+            --bg-main: #0b1120; 
+            --bg-surface: #1e293b; 
+            --bg-surface-hover: #2a3b52;
+            
+            /* Vurgular */
+            --primary: #38bdf8; 
+            --primary-light: rgba(56, 189, 248, 0.15);
+            --primary-gradient: linear-gradient(135deg, #38bdf8, #a855f7); 
+            
+            --success: #10b981;
+            --success-light: rgba(16, 185, 129, 0.15);
+            --success-gradient: linear-gradient(135deg, #10b981, #059669);
+            
+            --danger: #ef4444;
+            --danger-light: rgba(239, 68, 68, 0.15);
+            
+            --warning: #facc15; 
+            --warning-light: rgba(250, 204, 21, 0.2);
+            
+            /* Metin Renkleri */
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            
+            /* HARİTA STİLİ */
+            --map-land: #334155; 
+            --map-stroke: #64748b; 
+            
+            /* UI Ayarları */
+            --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 10px 25px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.6);
+            --border-color: rgba(255, 255, 255, 0.08); 
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            overflow: hidden; 
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* --- Ambient Glow (Ortam Işığı) --- */
+        .ambient-bg {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 0;
+            pointer-events: none;
+        }
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.4;
+            animation: float 20s infinite ease-in-out alternate;
+        }
+        .blob-1 { width: 350px; height: 350px; background: rgba(56, 189, 248, 0.2); top: -100px; left: -100px; }
+        .blob-2 { width: 450px; height: 450px; background: rgba(168, 85, 247, 0.15); bottom: -150px; right: -100px; animation-delay: -5s; }
+        .blob-3 { width: 300px; height: 300px; background: rgba(16, 185, 129, 0.1); top: 30%; left: 50%; transform: translate(-50%, -50%); animation-delay: -10s; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(30px, 50px) rotate(180deg); }
+            100% { transform: translate(-20px, 20px) rotate(360deg); }
+        }
+
+        /* Mobil Uygulama Çerçevesi */
+        #app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            height: 100vh;
+            height: 100dvh; 
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(180deg, rgba(30,41,59,0.5) 0%, rgba(11,17,32,0) 100%);
+        }
+
+        /* Yüzen Koyu Header */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            margin: 1rem 1.25rem 0;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            z-index: 10;
+        }
+
+        .question-counter {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+        }
+        .question-counter span { color: var(--primary); font-size: 1.1rem; }
+
+        .score-pill {
+            background: rgba(56, 189, 248, 0.1);
+            padding: 0.4rem 1rem;
+            border-radius: 999px;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--primary);
+            font-weight: 900;
+            font-size: 0.95rem;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+        }
+
+        /* Yeni Profesyonel Soru Alanı */
+        .question-area {
+            padding: 1rem 1.5rem;
+            text-align: center;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 110px;
+        }
+        .question-badge {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.3rem 0.8rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--primary-light);
+        }
+        .question-desc {
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-main);
+            line-height: 1.4;
+            margin: 0;
+        }
+        .question-desc strong {
+            color: var(--primary);
+            font-weight: 800;
+        }
+
+        /* HARİTA ALANI */
+        .map-wrapper {
+            padding: 0 1.25rem;
+            flex-shrink: 0;
+            margin-bottom: 0.5rem;
+        }
+        .map-container {
+            height: 25vh; 
+            min-height: 160px;
+            width: 100%;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            position: relative;
+            pointer-events: none; 
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.5), var(--shadow-sm);
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .map-container::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at center, transparent 0%, rgba(11,17,32,0.6) 100%);
+            pointer-events: none;
+        }
+
+        .province-path {
+            fill: var(--map-land);
+            stroke: var(--map-stroke);
+            stroke-width: 0.6px;
+            vector-effect: non-scaling-stroke;
+            transition: fill 0.5s ease;
+        }
+        
+        /* Eğitici Modda Vurgulanan Harita İlleri */
+        .province-path.highlighted-province {
+            fill: rgba(16, 185, 129, 0.4);
+            stroke: var(--success);
+            stroke-width: 1px;
+        }
+
+        /* Şıklar / Butonlar Alanı */
+        .options-container {
+            flex-grow: 1;
+            padding: 0 1.25rem 2rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            position: relative;
+        }
+
+        .hint-container {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.2rem;
+        }
+        
+        .hint-btn {
+            background: rgba(250, 204, 21, 0.15);
+            color: var(--warning);
+            border: 1px solid rgba(250, 204, 21, 0.3);
+            padding: 0.4rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .hint-btn:active { transform: scale(0.95); }
+        .hint-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+        .option-btn {
+            display: flex;
+            align-items: center;
+            width: 100%;
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            opacity: 0; 
+        }
+
+        .option-btn:active:not(.disabled-option) { 
+            transform: scale(0.97); 
+            background: var(--bg-surface-hover); 
+        }
+
+        .option-btn.disabled-option {
+            opacity: 0.3 !important;
+            pointer-events: none;
+            filter: grayscale(1);
+        }
+
+        .option-letter {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 900;
+            border-radius: 12px;
+            margin-right: 1rem;
+            flex-shrink: 0;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .option-text {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            flex-grow: 1;
+        }
+
+        /* Entry Animation */
+        @keyframes slideUpFade {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Durum Renkleri (Doğru / Yanlış) */
+        .option-btn.correct {
+            background: var(--success-light);
+            border-color: var(--success);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.15);
+        }
+        .option-btn.correct .option-letter {
+            background: var(--success);
+            color: #fff;
+            border-color: var(--success);
+        }
+        .option-btn.correct .option-text { color: var(--success); }
+
+        .option-btn.wrong {
+            background: var(--danger-light);
+            border-color: var(--danger);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.15);
+            animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        .option-btn.wrong .option-letter {
+            background: var(--danger);
+            color: #fff;
+            border-color: var(--danger);
+        }
+        .option-btn.wrong .option-text { color: var(--danger); }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Soru Esnasındaki Markerlar */
+        .map-marker {
+            transform-origin: center;
+            animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+            opacity: 0; 
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .marker-circle {
+            fill: var(--warning);
+            stroke: var(--bg-main);
+            stroke-width: 1.5px;
+            filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.8));
+        }
+        
+        .marker-pulse {
+            fill: none;
+            stroke: var(--warning);
+            stroke-width: 1.5px;
+            animation: radarPulse 2s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        @keyframes radarPulse {
+            0% { r: 8px; opacity: 1; stroke-width: 2px; }
+            100% { r: 26px; opacity: 0; stroke-width: 0px; }
+        }
+        
+        .marker-text {
+            fill: var(--bg-main);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 8px;
+            font-weight: 900;
+            text-anchor: middle;
+            dominant-baseline: central;
+        }
+
+        /* Eğitici Harita (Cevaptan sonra çıkan) Markerları */
+        .edu-marker {
+            transform-origin: center;
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+        .edu-marker-circle {
+            fill: var(--success);
+            stroke: #fff;
+            stroke-width: 1.5px;
+            filter: drop-shadow(0 0 10px var(--success));
+        }
+        .edu-marker-pulse {
+            fill: none;
+            stroke: var(--success);
+            stroke-width: 2px;
+            animation: radarPulse 2s infinite cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        /* --- MODERN FEEDBACK POPUP (BOTTOM SHEET) --- */
+        #feedback-overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px); z-index: 60; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        #feedback-overlay.active { opacity: 1; pointer-events: auto; }
+
+        #feedback-sheet {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(20px);
+            border-top-left-radius: 32px; border-top-right-radius: 32px;
+            padding: 2.5rem 1.5rem 2rem; z-index: 70;
+            transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            box-shadow: 0 -15px 40px rgba(0, 0, 0, 0.5);
+            border-top: 1px solid var(--border-color);
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            max-height: 85vh; overflow-y: auto;
+        }
+        #feedback-sheet.active { transform: translateY(0); }
+
+        .sheet-drag-handle {
+            width: 48px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px;
+            position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+        }
+
+        .feedback-icon {
+            width: 70px; height: 70px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            margin-top: -55px; margin-bottom: 1rem; border: 6px solid #1e293b;
+            background: var(--sheet-color); box-shadow: 0 10px 25px var(--sheet-shadow); flex-shrink: 0;
+        }
+        .feedback-icon i { width: 32px; height: 32px; color: #fff; }
+
+        .theme-success {
+            --sheet-color: var(--success);
+            --sheet-shadow: rgba(16, 185, 129, 0.4);
+            --btn-bg: var(--success-gradient);
+        }
+        .theme-danger {
+            --sheet-color: var(--danger);
+            --sheet-shadow: rgba(239, 68, 68, 0.4);
+            --btn-bg: linear-gradient(135deg, var(--danger), #b91c1c);
+        }
+
+        .feedback-title { color: var(--text-main); font-family: 'Space Grotesk', sans-serif; font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem; }
+        
+        .edu-box {
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1rem;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+        
+        .edu-box-title {
+            color: var(--primary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .feedback-desc { color: var(--text-main); font-size: 0.95rem; line-height: 1.5; }
+        .feedback-desc strong { color: var(--sheet-color); font-weight: 800; }
+        .feedback-info { color: var(--text-muted); font-size: 0.85rem; line-height: 1.5; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05); }
+        
+        .feedback-btn {
+            background: var(--btn-bg); color: #ffffff; width: 100%; padding: 1.1rem;
+            border-radius: 16px; font-family: 'Space Grotesk', sans-serif; font-size: 1.1rem; font-weight: 900;
+            box-shadow: 0 10px 20px var(--sheet-shadow); transition: transform 0.1s; border: none; outline: none; cursor: pointer;
+            flex-shrink: 0;
+        }
+        .feedback-btn:active { transform: scale(0.96); }
+
+        /* End Game Modal */
+        #end-overlay {
+            position: absolute; inset: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px);
+            display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1.5rem;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        #end-overlay.active { opacity: 1; pointer-events: auto; }
+        
+        .modal-card {
+            background: rgba(30, 41, 59, 0.9); width: 100%;
+            border-radius: 32px; padding: 3rem 1.5rem 2rem; text-align: center;
+            box-shadow: var(--shadow-lg); border: 1px solid var(--border-color);
+            transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #end-overlay.active .modal-card { transform: translateY(0) scale(1); }
+
+        .end-icon-wrapper {
+            width: 96px; height: 96px; margin: -5rem auto 1.5rem; background: var(--bg-surface); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; position: relative;
+            box-shadow: var(--shadow-md);
+        }
+        .end-icon-wrapper::before {
+            content: ''; position: absolute; inset: -3px; border-radius: 50%;
+            background: var(--primary-gradient); z-index: -1; animation: spin 3s linear infinite;
+        }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .end-icon-wrapper i { color: var(--primary); width: 44px; height: 44px; }
+
+        /* Loader */
+        .loader { width: 48px; height: 48px; border: 4px solid var(--primary-light); border-bottom-color: var(--primary); border-radius: 50%; display: inline-block; animation: rotation 1s linear infinite; }
+        @keyframes rotation { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    
+    <!-- Ambient Background -->
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <!-- Yükleme Ekranı -->
+    <div id="loading-screen" class="absolute inset-0 z-50 bg-[var(--bg-main)] flex flex-col items-center justify-center">
+        <span class="loader mb-6"></span>
+        <p class="font-bold text-[var(--primary)] text-lg font-['Space_Grotesk'] tracking-widest uppercase">Eğitim Verileri Yükleniyor</p>
+    </div>
+
+    <!-- Üst Bilgi Çubuğu -->
+    <header class="app-header">
+        <div class="question-counter">SORU <span id="q-current">1</span>/10</div>
+        <div class="score-pill" id="score-display">0 PUAN</div>
+    </header>
+
+    <!-- Soru Metni -->
+    <div class="question-area">
+        <div class="question-badge" id="question-badge">Soru Tipi</div>
+        <h2 class="question-desc" id="question-text">Soru Yükleniyor...</h2>
+    </div>
+
+    <!-- Harita (Görsel Yardımcı) -->
+    <div class="map-wrapper">
+        <div class="map-container">
+            <svg id="game-map" width="100%" height="100%" viewBox="0 0 1000 450" preserveAspectRatio="xMidYMid meet">
+                <g id="layer-provinces"></g>
+                <g id="layer-markers"></g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Şıklar -->
+    <div class="options-container">
+        <div class="hint-container">
+            <button class="hint-btn" id="hint-btn" onclick="game.useHint()">
+                <i data-lucide="lightbulb" class="w-3 h-3"></i> %50 İpucu (-5 Puan)
+            </button>
+        </div>
+        <div id="options-container" class="flex flex-col gap-2">
+            <!-- Butonlar JS ile buraya eklenecek -->
+        </div>
+    </div>
+
+    <!-- MODERN FEEDBACK POPUP (BOTTOM SHEET) -->
+    <div id="feedback-overlay"></div>
+    <div id="feedback-sheet" class="theme-success">
+        <div class="sheet-drag-handle"></div>
+        <div class="feedback-icon" id="feedback-icon-container">
+            <i data-lucide="check" id="feedback-icon"></i>
+        </div>
+        <h2 class="feedback-title" id="feedback-title">Harika! Doğru Bildin</h2>
+        
+        <div class="edu-box">
+            <div class="edu-box-title"><i data-lucide="book-open" class="w-3 h-3"></i> ÖĞRENME NOTU</div>
+            <div class="feedback-desc" id="feedback-desc">Açıklama buraya gelecek.</div>
+            <div class="feedback-info" id="feedback-info">Ekstra hap bilgi buraya gelecek.</div>
+        </div>
+        
+        <button class="feedback-btn" onclick="game.nextQuestion()">Anladım, Sonraki Soru</button>
+    </div>
+
+    <!-- Oyun Sonu Ekranı -->
+    <div id="end-overlay">
+        <div class="modal-card">
+            <div class="end-icon-wrapper">
+                <i data-lucide="award"></i>
+            </div>
+            <h2 class="text-3xl font-black text-[var(--text-main)] mb-2 font-['Space_Grotesk']">Eğitim Tamamlandı!</h2>
+            <p class="text-[var(--text-muted)] text-sm mb-8">Türkiye'nin yeraltı kaynakları analizini bitirdin.</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-8">
+                <div class="bg-[var(--bg-main)] p-4 rounded-2xl border border-[var(--border-color)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Skor</div>
+                    <div class="text-3xl font-black text-[var(--primary)] font-['Space_Grotesk']" id="final-score">0</div>
+                </div>
+                <div class="bg-[var(--bg-main)] p-4 rounded-2xl border border-[var(--border-color)]">
+                    <div class="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-2">Doğruluk</div>
+                    <div class="text-3xl font-black text-[var(--success)] font-['Space_Grotesk']" id="final-correct">0/10</div>
+                </div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-4 text-white font-black text-lg rounded-2xl font-['Space_Grotesk'] uppercase tracking-wider active:scale-95 transition-transform" style="background: var(--primary-gradient); box-shadow: 0 10px 25px rgba(56, 189, 248, 0.4);">
+                Yeniden Oyna
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const MAP_DATA_URL = 'https://raw.githubusercontent.com/Aliatas017/aliatas017.github.io/main/tr.json';
+
+    // Genişletilmiş Koordinat Listesi - Yeni veritabanına uyumlu hale getirildi
+    const baseCoords = {
+        "Konya": [32.5, 37.8], "Konya (Seydişehir)": [31.8, 37.4],
+        "Zonguldak": [31.8, 41.4], "Zonguldak (Kokaksu)": [31.7, 41.4], "Zonguldak (Ereğli)": [31.4, 41.3], "Zonguldak (Çatalağzı Termik Santrali)": [31.8, 41.5],
+        "Antalya": [30.7, 36.9], "Antalya (Akseki)": [31.7, 37.0], "Antalya (Alanya, Gazipaşa)": [32.1, 36.4],
+        "Hatay": [36.2, 36.2], "Hatay (Payas)": [36.2, 36.7], "Hatay (İskenderun)": [36.1, 36.5], "Hatay-Osmaniye Hattı": [36.2, 36.8],
+        "Muğla": [28.3, 37.2], "Muğla (Milas)": [27.7, 37.3], "Muğla (Fethiye, Milas)": [28.5, 37.0], "Muğla (Yatağan)": [28.1, 37.3],
+        "Elazığ": [39.2, 38.6], "Elazığ (Guleman)": [39.8, 38.5], "Elazığ (Maden)": [39.6, 38.3], "Elazığ (Keban)": [38.7, 38.7],
+        "Sivas": [37.0, 39.7], "Sivas (Divriği)": [38.11, 39.37],
+        "Erzincan": [39.5, 39.7], "Erzincan (Kopdağı)": [39.8, 39.9], "Erzincan (İliç)": [38.5, 39.4],
+        "Bayburt": [40.2, 40.2],
+        "Bursa": [29.0, 40.2], "Bursa (Orhaneli)": [28.9, 39.9], "Bursa (Uludağ)": [29.2, 40.0], "Bursa (Ovaakça)": [29.0, 40.3],
+        "Eskişehir": [30.5, 39.7], "Eskişehir (Mihalıççık)": [31.4, 39.8], "Eskişehir (Sivrihisar)": [31.5, 39.4],
+        "Adana": [35.3, 37.0], "Adana (Aladağ)": [35.4, 37.6], "Adana (Feke, Mansurlu)": [35.9, 37.8], "Adana (Sugözü Termik Santrali)": [35.8, 36.8],
+        "Kayseri": [35.4, 38.7], "Kayseri (Pınarbaşı)": [36.0, 38.7],
+        "Bingöl": [40.5, 38.8], "Bingöl (Avnik)": [40.49, 38.88],
+        "Malatya": [38.3, 38.3], "Malatya (Hekimhan)": [37.93, 38.82], "Malatya (Hasançelebi)": [37.9, 38.8],
+        "Kırıkkale": [33.5, 39.8], "Kırıkkale (Kesikköprü)": [33.5, 39.6], "Kırıkkale (Keskin)": [33.6, 39.6],
+        "Sakarya": [30.4, 40.7], "Sakarya (Çamdağı)": [30.4, 40.7],
+        "İzmir": [27.1, 38.4], "İzmir (Torbalı)": [27.35, 38.15], "İzmir (Bergama, Efemçukuru)": [27.1, 39.0], "İzmir (Aliağa)": [26.9, 38.8], "İzmir (Alaçatı - İlk Santral)": [26.3, 38.2], "İzmir (Çamaltı)": [26.9, 38.4], "İzmir (Karaburun)": [26.5, 38.6],
+        "Balıkesir": [27.8, 39.6], "Balıkesir (Havran)": [27.1, 39.5], "Balıkesir (Bigadiç)": [28.1, 39.3], "Balıkesir (Kazdağları)": [26.9, 39.7], "Balıkesir (Marmara Adası)": [27.6, 40.6], "Balıkesir (Bandırma)": [27.9, 40.3],
+        "Kastamonu": [33.7, 41.3], "Kastamonu (Küre)": [33.7, 41.8],
+        "Artvin": [41.8, 41.1], "Artvin (Murgul)": [41.5, 41.2], "Artvin (Cerattepe)": [41.8, 41.1], "Artvin (Borçka)": [41.6, 41.3],
+        "Rize": [40.5, 41.0], "Rize (Çayeli)": [40.7, 41.0],
+        "Diyarbakır": [40.2, 37.9], "Diyarbakır (Ergani)": [39.7, 38.2],
+        "Kütahya": [29.9, 39.4], "Kütahya (Tavşanlı)": [29.4, 39.5], "Kütahya (Simav)": [28.9, 39.0], "Kütahya (Değirmisaz)": [29.5, 39.5], "Kütahya (Tunçbilek)": [29.4, 39.6], "Kütahya (Seyitömer)": [29.8, 39.5],
+        "Gümüşhane": [39.4, 40.4], "Gümüşhane (Mastra)": [39.4, 40.4],
+        "Uşak": [29.4, 38.6], "Uşak (Kışladağ)": [29.1, 38.4],
+        "Mardin": [40.7, 37.3], "Mardin (Mazıdağı)": [40.4, 37.5],
+        "Ankara": [32.8, 39.9], "Ankara (Beypazarı)": [31.9, 40.1], "Ankara (Çayırhan)": [31.6, 40.1],
+        "Erzurum": [41.2, 39.9], "Erzurum (Oltu)": [41.9, 40.5],
+        "Aydın": [27.8, 37.8], "Aydın (Buharkent)": [28.7, 37.9], "Aydın (Çine)": [28.0, 37.6], "Aydın (Koçarlı)": [27.7, 37.7], "Aydın (Germencik)": [27.6, 37.8],
+        "Şırnak": [42.4, 37.5], "Şırnak (Silopi Termik Santrali)": [42.4, 37.2],
+        "Kahramanmaraş": [36.9, 37.5], "Kahramanmaraş (Elbistan)": [37.1, 38.2],
+        "Manisa": [27.4, 38.6], "Manisa (Soma)": [27.6, 39.1], "Manisa (Demirci)": [28.3, 39.0],
+        "Çanakkale": [26.4, 40.1], "Çanakkale (Çan)": [27.0, 40.0], "Çanakkale (Ayvacık)": [26.4, 39.6],
+        "Kırklareli": [27.2, 41.7], "Kırklareli (Hamitabat)": [27.3, 41.4],
+        "İstanbul": [28.9, 41.0], "İstanbul (Ambarlı)": [28.6, 40.9], "İstanbul-Tekirdağ Hattı": [27.8, 41.0],
+        "İzmit": [29.9, 40.7], "İzmit (Tüpraş)": [29.9, 40.7],
+        "Mersin": [34.6, 36.8], "Mersin (Sadece Depolama)": [34.6, 36.8],
+        "Denizli": [29.0, 37.7], "Denizli (Sarayköy - İlk Santral)": [28.9, 37.9], "Denizli (Tavas)": [29.0, 37.5], "Denizli (Kızıldere)": [28.8, 37.9],
+        "Afyonkarahisar": [30.5, 38.7], "Afyon": [30.5, 38.7],
+        "Fırat Nehri": [38.5, 38.2],
+        "Kızılırmak": [33.5, 39.2],
+        "Batman": [41.1, 37.8],
+        "Batı Kıyıları": [26.5, 38.5],
+        "Akdeniz Kıyıları": [33.0, 36.5],
+        "Şanlıurfa (Birecik - İlk Güneş Tarlası)": [37.9, 37.0],
+        "Karabük": [32.6, 41.2],
+        "Samsun": [36.3, 41.2],
+        "Niğde": [34.67, 37.96],
+        "Bilecik (Söğüt)": [30.1, 40.0],
+        "Tuz Gölü": [33.3, 38.8],
+        "Çankırı": [33.6, 40.6],
+        "Yozgat": [34.8, 39.8], "Yozgat (Yerköy)": [34.4, 39.6],
+        "Nevşehir": [34.7, 38.6], "Nevşehir (Gülşehir)": [34.6, 38.7],
+        "Iğdır (Tuzluca)": [43.6, 40.0],
+        "Van": [43.3, 38.5],
+        "Giresun": [38.3, 40.9],
+        "Muş": [41.4, 38.7],
+        "Adıyaman": [38.2, 37.7],
+        "Isparta (Keçiborlu)": [30.3, 37.9],
+        "Konya (Sarayönü)": [32.4, 38.2],
+        "Edirne (Enez)": [26.0, 40.7],
+        "Ordu": [37.8, 40.9],
+        "Tokat": [36.5, 40.3],
+        "Tekirdağ (Hayrabolu)": [27.1, 41.2],
+        "Mardin (Çamurlu)": [40.7, 37.3],
+        "Düzce (Akçakoca)": [31.1, 41.0]
+    };
+
+    const rawData = {
+        "Boksit (Alüminyum)": ["Konya (Seydişehir)", "Zonguldak (Kokaksu)", "Antalya (Akseki)", "Hatay (Payas)", "Muğla (Milas)"],
+        "Krom": ["Elazığ (Guleman)", "Sivas", "Erzincan (Kopdağı)", "Bayburt", "Muğla (Fethiye, Milas)", "Bursa (Orhaneli)", "Eskişehir (Mihalıççık)", "Adana (Aladağ)", "Hatay (İskenderun)", "Kayseri (Pınarbaşı)"],
+        "Demir": ["Sivas (Divriği)", "Bingöl (Avnik)", "Malatya (Hekimhan)", "Malatya (Hasançelebi)", "Adana (Feke, Mansurlu)", "Hatay (Payas)", "Kırıkkale (Kesikköprü)", "Sakarya (Çamdağı)", "İzmir (Torbalı)", "Balıkesir (Havran)"],
+        "Bakır": ["Kastamonu (Küre)", "Artvin (Murgul)", "Rize (Çayeli)", "Elazığ (Maden)", "Diyarbakır (Ergani)"],
+        "Bor Mineralleri": ["Balıkesir (Bandırma)", "Balıkesir (Bigadiç)", "Bursa", "Kütahya (Emet)", "Eskişehir"],
+        "Altın": ["Artvin (Cerattepe)", "Gümüşhane (Mastra)", "Erzincan (İliç)", "Balıkesir (Kazdağları)", "İzmir (Bergama, Efemçukuru)", "Uşak (Kışladağ)"],
+        "Fosfat": ["Mardin (Mazıdağı)", "Bingöl", "Adıyaman"],
+        "Mermer": ["Balıkesir (Marmara Adası)"],
+        "Wolfram (Tungsten)": ["Bursa (Uludağ)", "Elazığ (Keban)", "Kırıkkale (Keskin)"],
+        "Toryum": ["Eskişehir (Sivrihisar)"],
+        "Trona": ["Ankara (Beypazarı)"],
+        "Barit": ["Antalya (Alanya, Gazipaşa)", "Çanakkale", "Eskişehir", "Giresun", "Muş"],
+        "Oltu Taşı": ["Erzurum (Oltu)"],
+        "Lületaşı": ["Eskişehir"],
+        "Zımpara Taşı": ["İzmir", "Aydın", "Muğla"],
+        "Asfaltit": ["Şırnak (Silopi Termik Santrali)"],
+        "Linyit": ["Kahramanmaraş (Elbistan)", "Muğla (Yatağan)", "Manisa (Soma)", "Çanakkale (Çan)", "Ankara (Çayırhan)", "Kütahya (Tavşanlı)", "Kütahya (Seyitömer)"],
+        "Doğalgaz": ["Kırklareli (Hamitabat)", "Tekirdağ (Hayrabolu)", "Mardin (Çamurlu)", "Düzce (Akçakoca)"],
+        "Taş Kömürü": ["Zonguldak (Çatalağzı Termik Santrali)"],
+        "Petrol": ["Batman"],
+        "Rüzgar Enerjisi": ["İzmir (Alaçatı - İlk Santral)", "Batı Kıyıları", "Akdeniz Kıyıları", "Hatay-Osmaniye Hattı", "İstanbul-Tekirdağ Hattı"],
+        "Güneş Enerjisi": ["Şanlıurfa (Birecik - İlk Güneş Tarlası)"],
+        "Jeotermal Enerji": ["Denizli (Sarayköy - İlk Santral)", "Denizli (Kızıldere)", "Aydın (Buharkent)", "Çanakkale", "İzmir", "Manisa", "Afyon"],
+        "Hidroelektrik": ["Fırat Nehri", "Kızılırmak"],
+        "Manyezit": ["Bursa", "Kütahya", "Eskişehir", "Konya", "Erzincan"],
+        "Manganez": ["Zonguldak", "Kastamonu", "Denizli (Tavas)", "Burdur", "Adana (Ceyhan)", "Artvin (Borçka)", "Balıkesir"],
+        "Feldispat": ["Manisa (Demirci)", "Bilecik (Söğüt)", "Muğla (Milas)", "Kütahya (Simav)", "Aydın (Çine)"],
+        "Tuz": ["İzmir (Çamaltı)", "Tuz Gölü", "Çankırı", "Yozgat (Yerköy)", "Nevşehir (Gülşehir)", "Iğdır (Tuzluca)"],
+        "Perlit": ["Van", "Erzincan", "İzmir", "Erzurum", "Nevşehir", "Çanakkale", "Manisa", "Çankırı"],
+        "Kükürt": ["Kütahya", "Isparta (Keçiborlu)", "Muğla"],
+        "Kurşun ve Çinko": ["Elazığ (Keban)", "Kayseri", "Çanakkale", "Yozgat", "Giresun"],
+        "Cıva": ["İzmir (Karaburun)", "Konya (Sarayönü)", "Niğde"],
+        "Asbest": ["İzmir", "Bursa", "Hatay (İskenderun)", "Sivas"],
+        "Bentonit": ["Edirne (Enez)", "Çanakkale", "Kütahya", "Manisa", "Ordu", "Tokat"],
+        "Uranyum": ["Aydın (Koçarlı)", "Çanakkale (Ayvacık)", "Yozgat"]
+    };
+
+    const infoMap = {
+        "Boksit (Alüminyum)": "Alüminyum hammaddesidir. Konya Seydişehir Türkiye'deki en önemli işleme tesisidir.",
+        "Krom": "Ferrokrom tesisleri Elazığ ve Antalya'da bulunur. Paslanmaz çelik üretiminde çok önemlidir.",
+        "Demir": "Ereğli, Karabük, İskenderun gibi ağır sanayinin temeli olan önemli demir-çelik tesislerinde işlenir.",
+        "Bakır": "Samsun, Murgul, Çayeli ve Elazığ tesislerinde işlenmektedir. İletkenliği yüksek bir madendir.",
+        "Bor Mineralleri": "Türkiye dünya rezervlerinin %73'üne sahiptir. Balıkesir, Kütahya ve Eskişehir en önemli alanlardır.",
+        "Altın": "İzmir (Bergama) ve Artvin (Cerattepe) yatakları oldukça verimlidir.",
+        "Fosfat": "Suni gübre yapımında kullanılır. Türkiye'deki en önemli rezerv alanı Mardin Mazıdağı'dır.",
+        "Mermer": "Türkiye mermer ihracatında dünya liderlerindendir. Balıkesir Marmara adası mermeriyle ünlüdür.",
+        "Wolfram (Tungsten)": "Çok sert ve ısıya dayanıklıdır. Bursa Uludağ en bilinen çıkarım alanıdır.",
+        "Toryum": "Geleceğin nükleer yakıtı olarak görülür. Eskişehir Sivrihisar yatakları dünyada önemli bir paya sahiptir.",
+        "Trona": "Doğal sodadır. Cam sanayisinde kullanılır. Ankara Beypazarı dünyadaki sayılı yataklardandır.",
+        "Barit": "Sondaj çalışmalarında basıncı dengelemek için kullanılır. Antalya ve Gazipaşa öne çıkar.",
+        "Oltu Taşı": "Erzurum'un Oltu ilçesinde çıkarılan, takı ve tespih yapımında kullanılan değerli bir taştır.",
+        "Lületaşı": "Süs eşyası ve pipo yapımında kullanılır. Dünyada en çok Eskişehir'de çıkarılır.",
+        "Zımpara Taşı": "Aşındırıcı olarak kullanılır. Ege Bölgesi'nde (Aydın, İzmir, Muğla) yaygındır.",
+        "Asfaltit": "Petrole benzeyen katı bir fosil yakıttır. Şırnak Silopi termik santralinde elektrik üretilir.",
+        "Linyit": "Türkiye'de yaygın bir fosil yakıttır. Elbistan ve Soma gibi büyük termik santraller bulunur.",
+        "Doğalgaz": "Türkiye'de çıkarımı azdır. Trakya (Hamitabat) ve Düzce (Akçakoca) en bilinen çıkarım yerleridir.",
+        "Taş Kömürü": "Zonguldak ve çevresinde çıkarılır, yüksek kalorilidir. Demir-çelik sanayisinde kullanılır.",
+        "Petrol": "İlk olarak Batman'da bulunmuştur. Rafineriler Batman, İzmir, İzmit ve Kırıkkale'dedir.",
+        "Rüzgar Enerjisi": "Türkiye'nin ilk rüzgar santrali İzmir Alaçatı'da kurulmuştur. Batı kıyıları çok verimlidir.",
+        "Güneş Enerjisi": "Şanlıurfa Birecik Türkiye'nin ilk güneş tarlasıdır. Karadeniz hariç potansiyeli çok yüksektir.",
+        "Jeotermal Enerji": "Denizli Sarayköy ve Aydın Buharkent Türkiye'nin ilk ve en önemli santrallerindendir.",
+        "Hidroelektrik": "Fırat Nehri (Keban, Atatürk) ve Kızılırmak (Hirfanlı) en büyük potansiyele sahip akarsularımızdır.",
+        "Manyezit": "Ateşe dayanıklı tuğla yapımında kullanılır. İç Ege ve İç Anadolu'da yaygındır.",
+        "Manganez": "Demir çelik sanayisinde çeliği sertleştirmek için kullanılır. Zonguldak çevresinde bulunur.",
+        "Feldispat": "Cam ve seramik sanayisinde kullanılır. Ege Bölgesi'nde yoğunluktadır.",
+        "Tuz": "Göl (Tuz Gölü), deniz (İzmir Çamaltı) ve kaya tuzu (Çankırı, Yozgat) olarak elde edilir.",
+        "Perlit": "İnşaat ve yalıtımda kullanılan volkanik bir camdır. Doğu Anadolu ve Ege'de çıkarılır.",
+        "Kükürt": "Kimya sanayisinde ve ilaçlamada kullanılır. Isparta Keçiborlu en bilinen yatağıdır.",
+        "Kurşun ve Çinko": "Genellikle bir arada bulunurlar. Elazığ (Keban) ve Kayseri önemli maden alanlarıdır.",
+        "Cıva": "Sıvı halde bulunan tek metaldir. İzmir (Karaburun) ve Konya (Sarayönü) civarında bulunur.",
+        "Asbest": "Isıya dayanıklı bir mineraldir. İzmir, Bursa ve Hatay civarında yatakları bulunur.",
+        "Bentonit": "Döküm kumu ve kedi kumu yapımında sıkça kullanılan bir kil türüdür.",
+        "Uranyum": "Nükleer enerji hammaddesidir. Yozgat ve Aydın (Koçarlı) civarında öne çıkar."
+    };
+
+    const audioController = {
+        ctx: null,
+        init: function() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+        play: function(type) {
+            if (!this.ctx) this.init();
+            if (this.ctx.state === 'suspended') this.ctx.resume();
+            const now = this.ctx.currentTime; const gain = this.ctx.createGain(); gain.connect(this.ctx.destination);
+            if (type === 'success') {
+                const osc = this.ctx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'error') {
+                const osc = this.ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); osc.connect(gain); osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'hint') {
+                const osc = this.ctx.createOscillator(); osc.frequency.setValueAtTime(1200, now); gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1); osc.connect(gain); osc.start(now); osc.stop(now + 0.1);
+            }
+        }
+    };
+
+    const game = {
+        questions: [],
+        currentIndex: 0,
+        score: 0,
+        correctCount: 0,
+        isClickable: true,
+        hintUsed: false,
+        
+        svg: null, geoBounds: { minLon: 25.5, maxLon: 44.5, minLat: 35.5, maxLat: 42.5 }, 
+        viewBox: { w: 1000, h: 450 }, scale: 1, offsetX: 0, offsetY: 0,
+
+        getCoordsSafely: function(locName) {
+            let coords = baseCoords[locName];
+            if (!coords) {
+                let city = locName.split(' (')[0].trim();
+                coords = baseCoords[city] || [35.0, 39.0]; 
+            }
+            return [coords[0] + (Math.random()-0.5)*0.15, coords[1] + (Math.random()-0.5)*0.15];
+        },
+
+        init: function() {
+            lucide.createIcons();
+            document.body.addEventListener('click', () => audioController.init(), { once: true });
+            this.generateQuestions();
+            this.fetchMapData();
+        },
+
+        generateQuestions: function() {
+            const questionsArr = [];
+            const resKeys = Object.keys(rawData);
+
+            for (let i = 0; i < 10; i++) {
+                let type = Math.floor(Math.random() * 3) + 1; 
+                
+                let pool4 = resKeys.filter(k => rawData[k].length >= 4);
+                let pool3 = resKeys.filter(k => rawData[k].length >= 3);
+                
+                let allLocsArr = [].concat(...Object.values(rawData));
+                let allLocs = [...new Set(allLocsArr)];
+
+                if (type === 1 && pool4.length > 0) { 
+                    // TİP 1: Dışarıda Kalan Merkez
+                    let rKey = pool4[Math.floor(Math.random() * pool4.length)];
+                    let rLocs = rawData[rKey];
+                    
+                    let correctLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0,4);
+                    let rBaseCities = rLocs.map(l => l.split(' (')[0].trim());
+                    
+                    let wrongLocs = allLocs.filter(l => {
+                        let baseCity = l.split(' (')[0].trim();
+                        return !rLocs.includes(l) && !rBaseCities.includes(baseCity);
+                    });
+                    
+                    if(wrongLocs.length === 0) wrongLocs = allLocs.filter(l => !rLocs.includes(l));
+                    let wrongLoc = wrongLocs[Math.floor(Math.random() * wrongLocs.length)];
+                    let combinedLocs = [...correctLocs, wrongLoc].sort(()=>0.5-Math.random());
+                    
+                    let options = combinedLocs.map((loc, idx) => ({
+                        letter: String.fromCharCode(65+idx),
+                        text: loc,
+                        isCorrect: loc === wrongLoc, 
+                        coords: this.getCoordsSafely(loc)
+                    }));
+
+                    questionsArr.push({
+                        type: 1,
+                        badge: "Yer Eşleştirme (Analiz)",
+                        text: `Aşağıdaki haritada işaretli beş merkezden dördü <strong>${rKey}</strong> rezervi veya üretim tesisidir. Buna göre, hangi merkez <strong>dışarıda kalır</strong>?`,
+                        options: options,
+                        mapMarkers: options, 
+                        targetMine: rKey, // Eğitici harita için kaydedildi
+                        feedbackDesc: `<strong>${wrongLoc}</strong> bölgesinde ${rKey} bulunmaz. Diğer seçenekler ise bilinen çıkarım/kullanım alanlarıdır.`,
+                        info: infoMap[rKey] || "Önemli kaynaklarımızdan biridir."
+                    });
+
+                } else if (type === 2) { 
+                    // TİP 2: Dışarıda Kalan Maden
+                    let shuffledRes = [...resKeys].sort(()=>0.5-Math.random());
+                    let selectedRes = shuffledRes.slice(0, 5); 
+                    
+                    let mapRes = selectedRes.slice(0, 4);
+                    let wrongRes = selectedRes[4]; 
+                    
+                    let mapMarkers = [];
+                    let usedBaseCities = new Set();
+                    
+                    mapRes.forEach((rK, idx) => {
+                        let locs = rawData[rK].sort(() => 0.5 - Math.random());
+                        let loc = locs.find(l => !usedBaseCities.has(l.split(' (')[0].trim())) || locs[0];
+                        usedBaseCities.add(loc.split(' (')[0].trim());
+                        mapMarkers.push({
+                            letter: String.fromCharCode(65+idx),
+                            coords: this.getCoordsSafely(loc)
+                        });
+                    });
+                    
+                    let options = selectedRes.sort(()=>0.5-Math.random()).map((rK, idx) => ({
+                        letter: String.fromCharCode(65+idx),
+                        text: rK,
+                        isCorrect: rK === wrongRes
+                    }));
+
+                    questionsArr.push({
+                        type: 2,
+                        badge: "Kaynak Eşleştirme",
+                        text: `Haritada işaretli dört merkez ile aşağıdaki yeraltı ve enerji kaynakları eşleştirildiğinde, hangisi <strong>dışarıda kalır</strong>?`,
+                        options: options,
+                        mapMarkers: mapMarkers,
+                        targetMine: wrongRes, // Eğitici harita için kaydedildi
+                        feedbackDesc: `Haritada <strong>${wrongRes}</strong> kaynağına ait bir üretim merkezi verilmemiştir.`,
+                        info: infoMap[wrongRes] || "Türkiye'nin yeraltı zenginliklerindendir."
+                    });
+
+                } else { 
+                    // TİP 3: Ortak Maden
+                    let rKey = pool3[Math.floor(Math.random() * pool3.length)];
+                    let rLocs = rawData[rKey];
+                    let showLocs = [...rLocs].sort(()=>0.5-Math.random()).slice(0, Math.min(4, rLocs.length));
+                    
+                    let mapMarkers = showLocs.map(loc => ({
+                        letter: '',
+                        coords: this.getCoordsSafely(loc)
+                    }));
+                    
+                    let wrongRes = resKeys.filter(k => k !== rKey).sort(()=>0.5-Math.random()).slice(0, 4);
+                    let options = [rKey, ...wrongRes].sort(()=>0.5-Math.random()).map((k, idx) => ({
+                        letter: String.fromCharCode(65+idx),
+                        text: k,
+                        isCorrect: k === rKey 
+                    }));
+
+                    questionsArr.push({
+                        type: 3,
+                        badge: "Ortak Özellik Analizi",
+                        text: `Yukarıdaki haritada başlıca kullanım ve çıkarım alanları gösterilen kaynak aşağıdakilerden hangisidir?`,
+                        options: options,
+                        mapMarkers: mapMarkers,
+                        targetMine: rKey, // Eğitici harita için kaydedildi
+                        feedbackDesc: `Haritada işaretli alanların tamamı <strong>${rKey}</strong> yatakları veya tesislerini göstermektedir.`,
+                        info: infoMap[rKey] || "Bu kaynak Türkiye için büyük önem taşır."
+                    });
+                }
+            }
+            this.questions = questionsArr;
+        },
+
+        fetchMapData: function() {
+            fetch(MAP_DATA_URL)
+                .then(r => r.json())
+                .then(data => {
+                    this.setupMapProjection(data);
+                    document.getElementById('loading-screen').style.display = 'none';
+                    this.loadQuestion();
+                })
+                .catch(err => {
+                    document.getElementById('loading-screen').innerHTML = "<p class='text-[var(--danger)] font-bold'>Harita yüklenemedi. İnternet bağlantınızı kontrol edin.</p>";
+                });
+        },
+
+        setupMapProjection: function(data) {
+            this.svg = document.getElementById('game-map');
+            const layerProvinces = document.getElementById('layer-provinces');
+
+            const lonSpan = this.geoBounds.maxLon - this.geoBounds.minLon;
+            const latSpan = this.geoBounds.maxLat - this.geoBounds.minLat;
+            const padding = 20;
+            this.scale = Math.min((this.viewBox.w - 2 * padding) / lonSpan, (this.viewBox.h - 2 * padding) / latSpan);
+            this.offsetX = (this.viewBox.w - lonSpan * this.scale) / 2;
+            this.offsetY = (this.viewBox.h - latSpan * this.scale) / 2;
+
+            let pathD = "";
+            data.features.forEach(f => {
+                const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : (f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [f.geometry.coordinates]);
+                polys.forEach(poly => {
+                    poly.forEach(ring => {
+                        pathD += "M";
+                        ring.forEach((pt, i) => {
+                            const p = this.project(pt[0], pt[1]);
+                            pathD += `${p.x.toFixed(1)},${p.y.toFixed(1)} `;
+                            if (i === 0) pathD += "L";
+                        });
+                        pathD += "Z ";
+                    });
+                });
+            });
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", pathD);
+            path.setAttribute("class", "province-path");
+            layerProvinces.appendChild(path);
+        },
+
+        project: function(lon, lat) {
+            return { 
+                x: (lon - this.geoBounds.minLon) * this.scale + this.offsetX, 
+                y: this.viewBox.h - ((lat - this.geoBounds.minLat) * this.scale + this.offsetY) 
+            };
+        },
+
+        loadQuestion: function() {
+            if (this.currentIndex >= this.questions.length) {
+                this.endGame();
+                return;
+            }
+
+            const q = this.questions[this.currentIndex];
+            this.isClickable = true;
+            this.hintUsed = false;
+
+            document.getElementById('q-current').innerText = this.currentIndex + 1;
+            document.getElementById('score-display').innerText = `${this.score} PUAN`;
+            document.getElementById('question-badge').innerText = q.badge;
+            document.getElementById('question-text').innerHTML = q.text;
+
+            const hintBtn = document.getElementById('hint-btn');
+            hintBtn.disabled = false;
+            hintBtn.style.opacity = '1';
+
+            const optionsContainer = document.getElementById('options-container');
+            const markerLayer = document.getElementById('layer-markers');
+            
+            optionsContainer.innerHTML = '';
+            markerLayer.innerHTML = '';
+
+            // Soru Harita Markerları
+            q.mapMarkers.forEach((mk, i) => {
+                const p = this.project(mk.coords[0], mk.coords[1]);
+                const gOuter = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gOuter.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+
+                const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gInner.setAttribute("class", "map-marker");
+                gInner.style.animationDelay = `${i * 0.1}s`;
+
+                const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulse.setAttribute("class", "marker-pulse");
+                
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("class", "marker-circle");
+
+                gInner.appendChild(pulse);
+                gInner.appendChild(circle);
+
+                if (mk.letter) { 
+                    circle.setAttribute("r", "8"); 
+                    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                    text.setAttribute("class", "marker-text");
+                    text.textContent = mk.letter;
+                    gInner.appendChild(text);
+                } else { 
+                    circle.setAttribute("r", "5"); 
+                }
+                
+                gOuter.appendChild(gInner);
+                markerLayer.appendChild(gOuter);
+            });
+
+            // Şıkları Çiz
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn";
+                btn.dataset.correct = opt.isCorrect;
+                btn.style.animation = `slideUpFade 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) ${i * 0.08}s forwards`;
+                btn.innerHTML = `
+                    <div class="option-letter">${opt.letter}</div>
+                    <div class="option-text">${opt.text}</div>
+                `;
+                btn.onclick = () => this.handleAnswer(opt, btn, q);
+                optionsContainer.appendChild(btn);
+            });
+        },
+
+        useHint: function() {
+            if(!this.isClickable || this.hintUsed || this.score < 5) return; // Puan yoksa ipucu da yok
+            
+            this.hintUsed = true;
+            this.score -= 5;
+            document.getElementById('score-display').innerText = `${this.score} PUAN`;
+            audioController.play('hint');
+
+            const hintBtn = document.getElementById('hint-btn');
+            hintBtn.disabled = true;
+            hintBtn.innerHTML = `<i data-lucide="check" class="w-3 h-3"></i> İpucu Kullanıldı`;
+            lucide.createIcons();
+
+            const optionsContainer = document.getElementById('options-container');
+            const buttons = Array.from(optionsContainer.querySelectorAll('.option-btn'));
+            
+            const wrongButtons = buttons.filter(b => b.dataset.correct === "false");
+            // 2 yanlış şıkkı rastgele seçip soluklaştır
+            wrongButtons.sort(() => 0.5 - Math.random()).slice(0, 2).forEach(btn => {
+                btn.classList.add('disabled-option');
+            });
+        },
+
+        handleAnswer: function(selectedOpt, btnElement, currentQuestion) {
+            if (!this.isClickable) return;
+            this.isClickable = false;
+
+            const optionsContainer = document.getElementById('options-container');
+            const buttons = optionsContainer.querySelectorAll('.option-btn');
+            
+            // İpucu butonunu devre dışı bırak
+            document.getElementById('hint-btn').disabled = true;
+
+            let isCorrect = selectedOpt.isCorrect;
+            
+            const sheet = document.getElementById('feedback-sheet');
+            const overlay = document.getElementById('feedback-overlay');
+            const icon = document.getElementById('feedback-icon');
+            const title = document.getElementById('feedback-title');
+            const desc = document.getElementById('feedback-desc');
+            const info = document.getElementById('feedback-info');
+
+            if (isCorrect) {
+                audioController.play('success');
+                btnElement.classList.add('correct');
+                this.score += 10;
+                this.correctCount++;
+                
+                sheet.className = "theme-success";
+                icon.setAttribute("data-lucide", "check");
+                title.innerText = "Harika Analiz!";
+            } else {
+                audioController.play('error');
+                btnElement.classList.add('wrong');
+                
+                currentQuestion.options.forEach((opt, idx) => {
+                    if (opt.isCorrect) {
+                        buttons[idx].classList.add('correct');
+                    }
+                });
+
+                sheet.className = "theme-danger";
+                icon.setAttribute("data-lucide", "x");
+                title.innerText = "Hatalı Eşleştirme";
+            }
+
+            document.getElementById('score-display').innerText = `${this.score} PUAN`;
+            
+            desc.innerHTML = currentQuestion.feedbackDesc;
+            info.innerHTML = currentQuestion.info;
+            
+            lucide.createIcons();
+
+            // --- EĞİTİCİ HARİTA GÜNCELLEMESİ (Tüm Doğru Noktaları Göster) ---
+            this.showEducationalMap(currentQuestion.targetMine);
+
+            setTimeout(() => {
+                overlay.classList.add('active');
+                sheet.classList.add('active');
+            }, 800);
+        },
+
+        showEducationalMap: function(mineName) {
+            const markerLayer = document.getElementById('layer-markers');
+            markerLayer.innerHTML = ''; // Eski soru markerlarını sil
+
+            // Hedef madenin tüm gerçek lokasyonlarını al
+            const trueLocs = rawData[mineName];
+            if(!trueLocs) return;
+
+            trueLocs.forEach((loc, i) => {
+                const coords = this.getCoordsSafely(loc);
+                const p = this.project(coords[0], coords[1]);
+
+                const gOuter = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gOuter.setAttribute("transform", `translate(${p.x}, ${p.y})`);
+
+                const gInner = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                gInner.setAttribute("class", "edu-marker");
+                gInner.style.animationDelay = `${i * 0.05}s`;
+
+                const pulse = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                pulse.setAttribute("class", "edu-marker-pulse");
+                
+                const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                circle.setAttribute("r", "5"); 
+                circle.setAttribute("class", "edu-marker-circle");
+
+                gInner.appendChild(pulse);
+                gInner.appendChild(circle);
+                gOuter.appendChild(gInner);
+                markerLayer.appendChild(gOuter);
+            });
+        },
+
+        nextQuestion: function() {
+            const sheet = document.getElementById('feedback-sheet');
+            const overlay = document.getElementById('feedback-overlay');
+            
+            sheet.classList.remove('active');
+            overlay.classList.remove('active');
+
+            setTimeout(() => {
+                this.currentIndex++;
+                this.loadQuestion();
+            }, 300); 
+        },
+
+        endGame: function() {
+            document.getElementById('final-score').innerText = this.score;
+            document.getElementById('final-correct').innerText = `${this.correctCount}/10`;
+            
+            this.triggerConfetti();
+            document.getElementById('end-overlay').classList.add('active');
+        },
+
+        triggerConfetti: function() {
+            var duration = 3 * 1000;
+            var animationEnd = Date.now() + duration;
+            var defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 200, colors: ['#38bdf8', '#10b981', '#ffffff'] };
+            function randomInRange(min, max) { return Math.random() * (max - min) + min; }
+            var interval = setInterval(function() {
+              var timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) { return clearInterval(interval); }
+              var particleCount = 50 * (timeLeft / duration);
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } }));
+              confetti(Object.assign({}, defaults, { particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } }));
+            }, 250);
+        }
+    };
+
+    window.onload = () => game.init();
+</script>
+</body>
+</html>
